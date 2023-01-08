@@ -1,0 +1,13 @@
+#!/bin/csh
+
+set dir=`dirname $1`
+set base=`basename $1 .java`
+set file=$dir/$base
+
+set base=`dirname $`
+
+/bin/rm -f $file.s
+java --class-path $base Main < $file.java > $file.s
+sparc-linux-as -g -Asparc $base/module.s $file.s -o $file.o
+sparc-linux-ld -dynamic-linker /lib/ld-uClibc.so.0 -e start $file.o $base/runtime.o -lc -o $file
+/bin/rm -f $file.o
