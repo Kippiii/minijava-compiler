@@ -5,13 +5,27 @@ import java.lang.Math;
 import java.util.HashMap;
 import java.util.ArrayList;
 
+/**
+ * Interprets Straight Line code blocks and counts number of print arguments
+ */
 class Interp {
-    static class UnknownSubclassExcpetion extends Exception {
-        public UnknownSubclassExcpetion() {
+    /**
+     * Gets thrown when a class doesn't have a known subclass
+     */
+    static class UnknownSubclassException extends Exception {
+        public UnknownSubclassException() {
             super("Unknown subclass!");
         }
     }
-    static int interp(Exp e, HashMap<String, Integer> vMap) throws UnknownSubclassExcpetion {
+
+    /**
+     * Interprets an expression and gets its value
+     * @param e The expression being interpreted
+     * @param vMap A variable mapping
+     * @return The value of the expression
+     * @throws UnknownSubclassException
+     */
+    static int interp(Exp e, HashMap<String, Integer> vMap) throws UnknownSubclassException {
         if (e instanceof IdExp) {
             IdExp idE = (IdExp) e;
             return vMap.get(idE.id);
@@ -39,7 +53,7 @@ class Interp {
                     answer = val1 / val2;
                     break;
                 default:
-                    throw new UnknownSubclassExcpetion();
+                    throw new UnknownSubclassException();
             }
             return answer;
         }
@@ -48,9 +62,17 @@ class Interp {
             interp(seqE.stm, vMap);
             return interp(seqE.exp, vMap);
         }
-        throw new UnknownSubclassExcpetion();
+        throw new UnknownSubclassException();
     }
-    static ArrayList<Integer> interp(ExpList exps, HashMap<String, Integer> vMap) throws UnknownSubclassExcpetion {
+
+    /**
+     * Interprets a list of expressions and gets a list of values
+     * @param exps The list of expressions being interpreted
+     * @param vMap A variable mapping
+     * @return A list of values corresponding to each expression
+     * @throws UnknownSubclassException
+     */
+    static ArrayList<Integer> interp(ExpList exps, HashMap<String, Integer> vMap) throws UnknownSubclassException {
         if (exps instanceof PairExpList) {
             PairExpList pairExps = (PairExpList) exps;
             int newVal = interp(pairExps.head, vMap);
@@ -65,9 +87,16 @@ class Interp {
             values.add(newVal);
             return values;
         }
-        throw new UnknownSubclassExcpetion();
+        throw new UnknownSubclassException();
     }
-    static void interp(Stm s, HashMap<String, Integer> vMap) throws UnknownSubclassExcpetion {
+
+    /**
+     * Interprets a statement with a given variable map
+     * @param s The statement being interpreted
+     * @param vMap The variable mapping
+     * @throws UnknownSubclassException
+     */
+    static void interp(Stm s, HashMap<String, Integer> vMap) throws UnknownSubclassException {
         if (s instanceof CompoundStm) {
             CompoundStm compS = (CompoundStm) s;
             interp(compS.stm1, vMap);
@@ -84,16 +113,28 @@ class Interp {
             }
             System.out.printf("%d%n", values.get(0));
         } else {
-            throw new UnknownSubclassExcpetion();
+            throw new UnknownSubclassException();
         }
     }
-    public static void interp(Stm s) throws UnknownSubclassExcpetion {
+
+    /**
+     * Interprets a statement starting from an empty variable mapping
+     * @param s The statement being interpreted
+     * @throws UnknownSubclassException
+     */
+    public static void interp(Stm s) throws UnknownSubclassException {
         HashMap<String, Integer> vMap = new HashMap<String, Integer>();
         interp(s, vMap);
     }
 
 
-    static int countargs(ExpList exps) throws UnknownSubclassExcpetion {
+    /**
+     * Counts the number of expressions in an ExpList
+     * @param exps The list of expressions
+     * @return The number of expressions in the list
+     * @throws UnknownSubclassException
+     */
+    static int countargs(ExpList exps) throws UnknownSubclassException {
         if (exps instanceof PairExpList) {
             PairExpList pairExps = (PairExpList) exps;
             return 1 + countargs(pairExps.tail);
@@ -101,9 +142,16 @@ class Interp {
         if (exps instanceof LastExpList) {
             return 1;
         }
-        throw new UnknownSubclassExcpetion();
+        throw new UnknownSubclassException();
     }
-    static int maxargs(Exp e) throws UnknownSubclassExcpetion {
+
+    /**
+     * Gets the maximum number of arguments of a print statement in the given expression
+     * @param e The expression being analyzed
+     * @return The maximum number of arguments of a print statement
+     * @throws UnknownSubclassException
+     */
+    static int maxargs(Exp e) throws UnknownSubclassException {
         if (e instanceof IdExp) {
             return 0;
         }
@@ -122,9 +170,16 @@ class Interp {
             int expMax = maxargs(seqE.exp);
             return Math.max(stmMax, expMax);
         }
-        throw new UnknownSubclassExcpetion();
+        throw new UnknownSubclassException();
     }
-    static int maxargs(ExpList exps) throws UnknownSubclassExcpetion {
+
+    /**
+     * Gets the maximum number of arguments in a print statement in any of the expressions in a list
+     * @param exps The list of expressions
+     * @return The maximum number of arguments in a print statement
+     * @throws UnknownSubclassException
+     */
+    static int maxargs(ExpList exps) throws UnknownSubclassException {
         if (exps instanceof PairExpList) {
             PairExpList pairExps = (PairExpList) exps;
             int headMax = maxargs(pairExps.head);
@@ -135,9 +190,16 @@ class Interp {
             LastExpList lastExps = (LastExpList) exps;
             return maxargs(lastExps.head);
         }
-        throw new UnknownSubclassExcpetion();
+        throw new UnknownSubclassException();
     }
-    public static int maxargs(Stm s) throws UnknownSubclassExcpetion {
+
+    /**
+     * Gets the maximum number of arguments in a print statement in the given statement
+     * @param s The given statement
+     * @return The maximum number of arguments in a print statement
+     * @throws UnknownSubclassException
+     */
+    public static int maxargs(Stm s) throws UnknownSubclassException {
         if (s instanceof CompoundStm) {
             CompoundStm compS = (CompoundStm) s;
             int max1 = maxargs(compS.stm1);
@@ -154,15 +216,15 @@ class Interp {
             int mostArgs = maxargs(printS.exps);
             return Math.max(argCount, mostArgs);
         }
-        throw new UnknownSubclassExcpetion();
+        throw new UnknownSubclassException();
     }
 
-    public static void main (Stm s) throws IOException, UnknownSubclassExcpetion {
+    public static void main (Stm s) throws IOException, UnknownSubclassException {
         System.out.println (maxargs(s));
         interp(s);
     }
 
-    public static void main(String args[]) throws IOException, UnknownSubclassExcpetion {
+    public static void main(String args[]) throws IOException, UnknownSubclassException {
         main (Example.a_program);
         main (Example.another_program);
     }
