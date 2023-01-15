@@ -33,7 +33,7 @@ TOKEN : {
     | < SEMI_COLON: ";" >
     | < COMMA: "," >
     | < EQUAL: "=" >
-    | < AND: "&" >
+    | < AND: "&&" >
     | < LESS: "<" >
     | < PLUS: "+" >
     | < MINUS: "-" >
