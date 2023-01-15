@@ -1,0 +1,55 @@
+PARSER_BEGIN(MiniJavaParser)
+
+public class MiniJavaParser {}
+
+PARSER_END(MiniJavaParser)
+
+TOKEN : {
+      < CLASS: "class" >
+    | < PUBLIC: "public" >
+    | < STATIC: "static" >
+    | < VOID: "void" >
+    | < MAIN: "main" >
+    | < STRING: "String" >
+    | < EXTENDS: "extends" >
+    | < RETURN: "return" >
+    | < INT: "int" >
+    | < BOOLEAN: "boolean" >
+    | < IF: "if" >
+    | < ELSE: "else" >
+    | < WHILE: "while" >
+    | < SYSTEM_OUT_PRINTLN: "System.out.println" >
+    | < LENGTH: "length" >
+    | < NEW: "new" >
+    | < TRUE: "true" >
+    | < FALSE: "false" >
+    | < THIS: "this" >
+    | < CURLY_OPEN: "{" >
+    | < CURLY_CLOSE: "}" >
+    | < PAREN_OPEN: "(" >
+    | < PAREN_CLOSE: ")" >
+    | < SQUARE_OPEN: "[" >
+    | < SQUARE_CLOSE: "]" >
+    | < SEMI_COLON: ";" >
+    | < COMMA: "," >
+    | < EQUAL: "=" >
+    | < AND: "&" >
+    | < LESS: "<" >
+    | < PLUS: "+" >
+    | < MINUS: "-" >
+    | < STAR: "*" >
+    | < DOT: "." >
+    | < BANG: "!" >
+    | < #LETTER: ["a" - "z"] | ["A" - "Z"] >
+    | < #DIGIT: ["0" - "9"] >
+    | < IDENTIFIER: <LETTER> (<LETTER> | <DIGIT> | "_")* >
+    | < INTEGER_LITERAL: (<DIGIT>)+ >
+}
+
+SKIP : {
+      < #NEW_LINE: "\n" | "\r" >
+    | < "/*" (~[])* "*/" >
+    | < "//" (~[])* <NEW_LINE> >
+    | < <NEW_LINE> >
+    | < " " | "\t" | "\f" >
+}
