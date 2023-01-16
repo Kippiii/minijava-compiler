@@ -1,5 +1,7 @@
 PARSER_BEGIN(MiniJavaParser)
 
+package parser;
+
 public class MiniJavaParser {}
 
 PARSER_END(MiniJavaParser)
