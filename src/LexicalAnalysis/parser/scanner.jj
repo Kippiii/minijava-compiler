@@ -26,6 +26,44 @@ TOKEN : {
     | < TRUE: "true" >
     | < FALSE: "false" >
     | < THIS: "this" >
+    | < ABSTRACT: "abstract" >
+    | < CONTINUE: "continue" >
+    | < FOR: "for" >
+    | < SWITCH: "switch" >
+    | < ASSERT: "assert" >
+    | < DEF: "default" >
+    | < PACKAGE: "package" >
+    | < SYNCHRONIZED: "synchronized" >
+    | < DO: "do" >
+    | < GOTO: "goto" >
+    | < PRIVATE: "private" >
+    | < BREAK: "break" >
+    | < DOUBLE: "double" >
+    | < IMPLEMENTS: "implements" >
+    | < PROTECTED: "protected" >
+    | < THROW: "throw" >
+    | < BYTE: "byte" >
+    | < IMPORT: "import" >
+    | < THROWS: "throws" >
+    | < CASE: "case" >
+    | < ENUM: "enum" >
+    | < INSTANCEOF: "instanceof" >
+    | < TRANSIENT: "transient" >
+    | < CATCH: "catch" >
+    | < SHORT: "short" >
+    | < TRY: "try" >
+    | < CHAR: "char" >
+    | < FINAL: "final" >
+    | < INTERFACE: "interface" >
+    | < FINALLY: "finally" >
+    | < LONG: "long" >
+    | < STRICTFP: "strictfp" >
+    | < VOLATILE: "volatile" >
+    | < CONST: "const" >
+    | < FLOAT: "float" >
+    | < NATIVE: "native" >
+    | < SUPER: "super" >
+    | < NULL: "null" >
     | < CURLY_OPEN: "{" >
     | < CURLY_CLOSE: "}" >
     | < PAREN_OPEN: "(" >
