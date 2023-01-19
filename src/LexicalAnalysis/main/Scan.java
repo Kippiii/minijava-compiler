@@ -1,17 +1,17 @@
 package main;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import parser.*;
+import parser.MiniJavaParserConstants;
 
 public class Scan {
     static String filename = "Factorial.java";
 
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) throws FileNotFoundException, IOException {
         if (args.length < 1)
             filename = "Factorial.java";
         else
@@ -19,10 +19,14 @@ public class Scan {
 
         final MiniJavaParser lexer = new MiniJavaParser (new FileInputStream(filename));
 
+        BufferedWriter writer = new BufferedWriter(new FileWriter("program.out"));
+        PrintWriter fileWriter = new PrintWriter(writer);
+
         int errors = 0;
         while (true) {
             try {
                 final Token token = lexer.getNextToken();
+                fileWriter.printf("%s:%03d%03d: %s \"%s\"%n", filename, token.beginLine, token.beginColumn, MiniJavaParserConstants.tokenImage[token.kind], token.image);
                 if (token.kind == MiniJavaParserConstants.EOF)
                     break;
             } catch (TokenMgrError e) {
@@ -30,6 +34,8 @@ public class Scan {
                 errors++;
             }
         }
+
+        writer.close();
 
         System.out.printf("filename=%s, errors=%d%n", filename, errors);
     }
