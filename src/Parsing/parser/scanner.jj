@@ -1,0 +1,175 @@
+PARSER_BEGIN(MiniJavaParser)
+
+package parser;
+
+public class MiniJavaParser {}
+
+PARSER_END(MiniJavaParser)
+
+TOKEN : {
+      < CLASS: "class" >
+    | < PUBLIC: "public" >
+    | < STATIC: "static" >
+    | < VOID: "void" >
+    | < MAIN: "main" >
+    | < STRING: "String" >
+    | < EXTENDS: "extends" >
+    | < RETURN: "return" >
+    | < INT: "int" >
+    | < BOOLEAN: "boolean" >
+    | < IF: "if" >
+    | < ELSE: "else" >
+    | < WHILE: "while" >
+    | < SYSTEM_OUT_PRINTLN: "System.out.println" >
+    | < LENGTH: "length" >
+    | < NEW: "new" >
+    | < TRUE: "true" >
+    | < FALSE: "false" >
+    | < THIS: "this" >
+    | < ABSTRACT: "abstract" >
+    | < CONTINUE: "continue" >
+    | < FOR: "for" >
+    | < SWITCH: "switch" >
+    | < ASSERT: "assert" >
+    | < DEF: "default" >
+    | < PACKAGE: "package" >
+    | < SYNCHRONIZED: "synchronized" >
+    | < DO: "do" >
+    | < GOTO: "goto" >
+    | < PRIVATE: "private" >
+    | < BREAK: "break" >
+    | < DOUBLE: "double" >
+    | < IMPLEMENTS: "implements" >
+    | < PROTECTED: "protected" >
+    | < THROW: "throw" >
+    | < BYTE: "byte" >
+    | < IMPORT: "import" >
+    | < THROWS: "throws" >
+    | < CASE: "case" >
+    | < ENUM: "enum" >
+    | < INSTANCEOF: "instanceof" >
+    | < TRANSIENT: "transient" >
+    | < CATCH: "catch" >
+    | < SHORT: "short" >
+    | < TRY: "try" >
+    | < CHAR: "char" >
+    | < FINAL: "final" >
+    | < INTERFACE: "interface" >
+    | < FINALLY: "finally" >
+    | < LONG: "long" >
+    | < STRICTFP: "strictfp" >
+    | < VOLATILE: "volatile" >
+    | < CONST: "const" >
+    | < FLOAT: "float" >
+    | < NATIVE: "native" >
+    | < SUPER: "super" >
+    | < NULL: "null" >
+    | < CURLY_OPEN: "{" >
+    | < CURLY_CLOSE: "}" >
+    | < PAREN_OPEN: "(" >
+    | < PAREN_CLOSE: ")" >
+    | < SQUARE_OPEN: "[" >
+    | < SQUARE_CLOSE: "]" >
+    | < SEMI_COLON: ";" >
+    | < COMMA: "," >
+    | < EQUAL: "=" >
+    | < AND: "&&" >
+    | < LESS: "<" >
+    | < PLUS: "+" >
+    | < MINUS: "-" >
+    | < STAR: "*" >
+    | < DOT: "." >
+    | < BANG: "!" >
+    | < #LETTER: ["a" - "z"] | ["A" - "Z"] >
+    | < #DIGIT: ["0" - "9"] >
+    | < IDENTIFIER: <LETTER> (<LETTER> | <DIGIT> | "_")* >
+    | < INTEGER_LITERAL: (<DIGIT>)+ >
+}
+
+SKIP : {
+      < #NEW_LINE: "\n" | "\r" >
+    | < "/*" ((~["*"])* ("*" ~["/"])?)* ("*")? "*/" >
+    | < "//" (~[])* <NEW_LINE> >
+    | < <NEW_LINE> >
+    | < " " | "\t" | "\f" >
+}
+
+void Program() :
+{}
+{
+    MainClass() ( ClassDecl() )* <EOF>
+}
+
+void MainClass() :
+{}
+{
+    <CLASS> <IDENTIFIER> <CURLY_OPEN> <PUBLIC> <STATIC> <VOID> <MAIN> <PAREN_OPEN> <STRING> <SQUARE_OPEN> <SQUARE_CLOSE> <IDENTIFIER> <PAREN_CLOSE> <CURLY_OPEN> Statement() <CURLY_CLOSE> <CURLY_CLOSE>
+}
+
+void ClassDecl() :
+{}
+{
+    <CLASS> <IDENTIFIER> ( <EXTENDS> <IDENTIFIER> )? <CURLY_OPEN> ( VarDecl() )* ( MethodDecl() )* <CURLY_CLOSE>
+}
+
+void VarDecl() :
+{}
+{
+    Type() <IDENTIFIER> <SEMI_COLON>
+}
+
+void MethodDecl() :
+{}
+{
+    <PUBLIC> Type() <IDENTIFIER> <PAREN_OPEN> ( Type() <IDENTIFIER> ( <COMMA> Type() <IDENTIFIER> )* )? <PAREN_CLOSE> <CURLY_OPEN> VarDecl() Statement() <RETURN> Expression() <SEMI_COLON> <CURLY_CLOSE>
+}
+
+void Type() :
+{}
+{
+      <INT> <SQUARE_OPEN> <SQUARE_CLOSE>
+    | <BOOLEAN>
+    | <INT>
+    | <IDENTIFIER>
+}
+
+void Statement() :
+{}
+{
+      <CURLY_OPEN> ( Statement() )* <CURLY_CLOSE>
+    | <IF> <PAREN_OPEN> Expression() <PAREN_CLOSE> Statement() <ELSE> Statement()
+    | <WHILE> <PAREN_OPEN> Expression() <PAREN_CLOSE> Statement()
+    | <SYSTEM_OUT_PRINTLN> <PAREN_OPEN> Expression() <PAREN_CLOSE> <SEMI_COLON>
+    | <IDENTIFIER> <EQUAL> Expression() <SEMI_COLON>
+    | <IDENTIFIER> <SQUARE_OPEN> Expression() <SQUARE_CLOSE> <EQUAL> Expression() <SEMI_COLON>
+}
+
+void Expression() :
+{}
+{
+    BaseExpression() AddToExpression()
+}
+
+void AddToExpression() :
+{}
+{
+      ( <AND> | <LESS> | <PLUS> | <MINUS> | <STAR> ) Expression()
+    | <DOT> <IDENTIFIER> <PAREN_OPEN> ( Expression() ( <COMMA> Expression() )* )? <PAREN_CLOSE>
+    | <SQUARE_OPEN> Expression() <SQUARE_CLOSE>
+    | <DOT> <LENGTH>
+    | {}
+}
+
+void BaseExpression() :
+{}
+{
+      <NEW> <INT> <SQUARE_OPEN> Expression() <SQUARE_CLOSE>
+    | <NEW> <IDENTIFIER> <PAREN_OPEN> <PAREN_CLOSE>
+    | <BANG> Expression()
+    | <INTEGER_LITERAL>
+    | <TRUE>
+    | <FALSE>
+    | <IDENTIFIER>
+    | <THIS>
+    | <PAREN_OPEN> Expression() <PAREN_CLOSE>
+}
