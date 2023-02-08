@@ -7,10 +7,11 @@ compiler: scan.jar
 	chmod u+x compile
 
 scan.jar:
-	$(JAVACC) -OUTPUT_DIRECTORY=parser parser/scanner.jj
-	$(JAVAC) */*.java
-	jar cfe $@ main.Scan */*.class
+	$(JAVACC) -OUTPUT_DIRECTORY=ParserGenerator ParserGenerator/scanner.jj
+	$(JAVAC) LexicalAnalysis/*.java
+	jar cfe $@ LexicalAnalysis.Scan */*.class
 
 clean:
-	rm scan.jar
-	rm */*.class
+	rm -f scan.jar
+	rm -f ParserGenerator/*.class
+	rm -f LexicalAnalysis/*.class

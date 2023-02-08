@@ -1,6 +1,10 @@
+options {
+    LOOKAHEAD = 2;
+}
+
 PARSER_BEGIN(MiniJavaParser)
 
-package parser;
+package ParserGenerator;
 
 public class MiniJavaParser {}
 
@@ -92,4 +96,84 @@ SKIP : {
     | < "//" (~[])* <NEW_LINE> >
     | < <NEW_LINE> >
     | < " " | "\t" | "\f" >
+}
+
+void Program() :
+{}
+{
+    MainClass() ( ClassDecl() )* <EOF>
+}
+
+void MainClass() :
+{}
+{
+    <CLASS> <IDENTIFIER> <CURLY_OPEN> <PUBLIC> <STATIC> <VOID> <MAIN> <PAREN_OPEN> <STRING> <SQUARE_OPEN> <SQUARE_CLOSE> <IDENTIFIER> <PAREN_CLOSE> <CURLY_OPEN> Statement() <CURLY_CLOSE> <CURLY_CLOSE>
+}
+
+void ClassDecl() :
+{}
+{
+    <CLASS> <IDENTIFIER> ( <EXTENDS> <IDENTIFIER> )? <CURLY_OPEN> ( VarDecl() )* ( MethodDecl() )* <CURLY_CLOSE>
+}
+
+void VarDecl() :
+{}
+{
+    Type() <IDENTIFIER> <SEMI_COLON>
+}
+
+void MethodDecl() :
+{}
+{
+    <PUBLIC> Type() <IDENTIFIER> <PAREN_OPEN> ( Type() <IDENTIFIER> ( <COMMA> Type() <IDENTIFIER> )* )? <PAREN_CLOSE> <CURLY_OPEN> VarDecl() Statement() <RETURN> Expression() <SEMI_COLON> <CURLY_CLOSE>
+}
+
+void Type() :
+{}
+{
+      <INT> <SQUARE_OPEN> <SQUARE_CLOSE>
+    | <BOOLEAN>
+    | <INT>
+    | <IDENTIFIER>
+}
+
+void Statement() :
+{}
+{
+      <CURLY_OPEN> ( Statement() )* <CURLY_CLOSE>
+    | <IF> <PAREN_OPEN> Expression() <PAREN_CLOSE> Statement() <ELSE> Statement()
+    | <WHILE> <PAREN_OPEN> Expression() <PAREN_CLOSE> Statement()
+    | <SYSTEM_OUT_PRINTLN> <PAREN_OPEN> Expression() <PAREN_CLOSE> <SEMI_COLON>
+    | <IDENTIFIER> <EQUAL> Expression() <SEMI_COLON>
+    | <IDENTIFIER> <SQUARE_OPEN> Expression() <SQUARE_CLOSE> <EQUAL> Expression() <SEMI_COLON>
+}
+
+void Expression() :
+{}
+{
+    BaseExpression() AddToExpression()
+}
+
+void AddToExpression() :
+{}
+{
+      ( <AND> | <LESS> | <PLUS> | <MINUS> | <STAR> ) Expression()
+    | <DOT> <IDENTIFIER> <PAREN_OPEN> ( Expression() ( <COMMA> Expression() )* )? <PAREN_CLOSE>
+    | <SQUARE_OPEN> Expression() <SQUARE_CLOSE>
+    | <DOT> <LENGTH>
+    | {}
+}
+
+void BaseExpression() :
+{}
+{
+      <NEW> <INT> <SQUARE_OPEN> Expression() <SQUARE_CLOSE>
+    | <NEW> <IDENTIFIER> <PAREN_OPEN> <PAREN_CLOSE>
+    | <BANG> Expression()
+    | <INTEGER_LITERAL>
+    | <TRUE>
+    | <FALSE>
+    | <IDENTIFIER>
+    | <THIS>
+    | <PAREN_OPEN> Expression() <PAREN_CLOSE>
 }
