@@ -1,8 +1,11 @@
-package main;
+package Parsing;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import parser.*;
+
+import ParserGenerator.*;
+import LexicalAnalysis.Scan;
+import LexicalAnalysis.ManyParseException;
 
 public class Parse {
     static String filename = "Factorial.java";
@@ -10,6 +13,13 @@ public class Parse {
     public static void main(String[] args) throws FileNotFoundException {
         if (args.length >= 1)
             filename = args[0];
+
+        try {
+            Scan.scan(filename);
+        } catch (ManyParseException e) {
+            // TODO
+            return;
+        }
 
         final MiniJavaParser lexer = new MiniJavaParser (new FileInputStream(filename));
         try {

@@ -7,10 +7,14 @@ compiler: parse.jar
 	chmod u+x compile
 
 parse.jar:
-	$(JAVACC) -OUTPUT_DIRECTORY=parser parser/scanner.jj
-	$(JAVAC) */*.java
-	jar cfe $@ main.Parse */*.class
+	$(JAVACC) -STATIC=false -OUTPUT_DIRECTORY=ParserGenerator ParserGenerator/scanner.jj
+	$(JAVAC) ParserGenerator/*.java
+	$(JAVAC) LexicalAnalysis/*.java
+	$(JAVAC) Parsing/*.java
+	jar cfe $@ Parsing.Parse */*.class
 
 clean:
-	rm parse.jar
-	rm */*.class
+	rm -f parse.jar
+	rm -f ParserGenerator/*.class
+	rm -f LexicalAnalysis/*.class
+	rm -f Parsing/*.class

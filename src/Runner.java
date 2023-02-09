@@ -24,7 +24,7 @@ public class Runner {
             case LEXER:
                 return "LexicalAnalysis";
             case PARSER:
-                return "ParserGenerator";
+                return "Parsing";
         }
         return "";
     }
