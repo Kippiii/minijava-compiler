@@ -10,6 +10,14 @@ public class MiniJavaParser {}
 
 PARSER_END(MiniJavaParser)
 
+SKIP : {
+      < #NEW_LINE: "\n" | "\r" >
+    | < "/*" ((~["*"])* ("*" ~["/"])?)* ("*")? "*/" >
+    | < "//" (~[])* <NEW_LINE> >
+    | < <NEW_LINE> >
+    | < " " | "\t" | "\f" >
+}
+
 TOKEN : {
       < CLASS: "class" >
     | < PUBLIC: "public" >
@@ -88,14 +96,7 @@ TOKEN : {
     | < #DIGIT: ["0" - "9"] >
     | < IDENTIFIER: <LETTER> (<LETTER> | <DIGIT> | "_")* >
     | < INTEGER_LITERAL: (<DIGIT>)+ >
-}
-
-SKIP : {
-      < #NEW_LINE: "\n" | "\r" >
-    | < "/*" ((~["*"])* ("*" ~["/"])?)* ("*")? "*/" >
-    | < "//" (~[])* <NEW_LINE> >
-    | < <NEW_LINE> >
-    | < " " | "\t" | "\f" >
+    | < MONKEY: ~[] >
 }
 
 void Program() :

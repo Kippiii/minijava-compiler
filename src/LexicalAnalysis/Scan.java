@@ -3,8 +3,6 @@ package LexicalAnalysis;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import ParserGenerator.*;
 
@@ -48,13 +46,13 @@ public class Scan {
         List<Token> tokens = new ArrayList<Token>();
         List<ParseException> errors = new ArrayList<ParseException>();
         while (true) {
-            try {
-                final Token token = lexer.getNextToken();
+            final Token token = lexer.getNextToken();
+            if (token.kind == MiniJavaParserConstants.MONKEY) {
+                errors.add(new ParseException(token));
+            } else {
                 tokens.add(token);
                 if (token.kind == MiniJavaParserConstants.EOF)
                     break;
-            } catch (TokenMgrError e) {
-                errors.add(new ParseException(e.toString()));
             }
         }
 
