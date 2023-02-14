@@ -2,11 +2,11 @@ package LexicalAnalysis;
 
 import ParserGenerator.*;
 
-public class ParseException extends Exception {
+public class LexException extends Exception {
     int lineNum;
     int colNum;
     char curChar;
-    public ParseException(Token token) {
+    public LexException(Token token) {
         this.lineNum = token.beginLine;
         this.colNum = token.beginColumn;
         this.curChar = token.image.charAt(0);

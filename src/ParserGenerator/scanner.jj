@@ -1,5 +1,6 @@
 options {
     LOOKAHEAD = 2;
+    DEBUG_PARSER = true;
 }
 
 PARSER_BEGIN(MiniJavaParser)

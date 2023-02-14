@@ -15,50 +15,48 @@ public class Scan {
         else
             filename = args[0];
 
+        boolean debug = args.length >= 2 ? args[1].equals("debug") : false;
+
         int errors = 0;
 
-        List<Token> tokens;
         try {
-            tokens = scan(filename);
-        } catch (ManyParseException e) {
-            for (ParseException e2 : e.parseExceptions) {
+            scan(filename, debug);
+        } catch (ManyLexException e) {
+            for (LexException e2 : e.lexExceptions) {
                 System.err.printf("%s:%s%n", filename, e2.toString());
             }
 
-            errors = e.parseExceptions.size();
-            tokens = e.tokens;
+            errors = e.lexExceptions.size();
         }
-
-        BufferedWriter writer = new BufferedWriter(new FileWriter("lexer.out"));
-        PrintWriter fileWriter = new PrintWriter(writer);
-        for (Token token : tokens) {
-            fileWriter.printf("%s:%03d%03d: %s \"%s\"%n", filename, token.beginLine, token.beginColumn, MiniJavaParserConstants.tokenImage[token.kind], token.image);
-        }
-
-        writer.close();
 
         System.out.printf("filename=%s, errors=%d%n", filename, errors);
     }
 
-    public static List<Token> scan(String file) throws ManyParseException, FileNotFoundException {
+    public static void scan(String file) throws ManyLexException, FileNotFoundException {
+        scan(file, false);
+    }
+
+    public static void scan(String file, boolean debug) throws ManyLexException, FileNotFoundException {
         final MiniJavaParser lexer = new MiniJavaParser(new FileInputStream(file));
 
-        List<Token> tokens = new ArrayList<Token>();
-        List<ParseException> errors = new ArrayList<ParseException>();
+        if (debug)
+            lexer.enable_tracing();
+        else
+            lexer.disable_tracing();
+
+        List<LexException> errors = new ArrayList<LexException>();
         while (true) {
             final Token token = lexer.getNextToken();
             if (token.kind == MiniJavaParserConstants.MONKEY) {
-                errors.add(new ParseException(token));
+                errors.add(new LexException(token));
             } else {
-                tokens.add(token);
                 if (token.kind == MiniJavaParserConstants.EOF)
                     break;
             }
         }
 
         if (errors.size() > 0)
-            throw new ManyParseException(errors, tokens);
-        return tokens;
+            throw new ManyLexException(errors);
     }
 
 }
