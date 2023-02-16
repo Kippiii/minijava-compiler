@@ -36,12 +36,14 @@ public class Utilities {
         switch(phase) {
             case PARSER:
                 directories.add("Parsing/Parse.java");
+                directories.add("Parsing/MyParseException.java");
             case LEXER:
                 directories.add("LexicalAnalysis/Scan.java");
                 directories.add("LexicalAnalysis/ParseException.java");
-                directories.add("LexicalAnalysis/ManyParseException.java");
             default:
                 directories.add("ParserGenerator/scanner.jj");
+                directories.add("ErrorManagement/CompilerException.java");
+                directories.add("ErrorManagement/CompilerExceptionList.java");
         }
         return directories;
     }

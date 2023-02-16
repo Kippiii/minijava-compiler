@@ -2,10 +2,13 @@ package Parsing;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
 
+import ErrorManagement.CompilerException;
+import ErrorManagement.CompilerExceptionList;
 import ParserGenerator.*;
 import LexicalAnalysis.Scan;
-import LexicalAnalysis.ManyLexException;
 
 public class Parse {
     static String filename = "Factorial.java";
@@ -15,29 +18,28 @@ public class Parse {
             filename = args[0];
         boolean debug = args.length >= 2 && args[1].equals("debug");
 
+        int errors = 0;
         try {
-            Scan.scan(filename);
-        } catch (ManyLexException e) {
-            // TODO
-            return;
+            parse(filename, debug);
+        } catch (CompilerExceptionList exc) {
+            for (CompilerException err : exc) {
+                System.err.printf("%s:%s%n", filename, err.toString());
+                errors++;
+            }
         }
 
-        parse(filename, debug);
+        System.out.printf("filename=%s, errors=%d%n", filename, errors);
     }
 
-    public static void parse(String filename) throws FileNotFoundException {
+    public static void parse(String filename) throws FileNotFoundException, CompilerExceptionList {
         parse(filename, false);
     }
 
-    public static void parse(String filename, boolean debug) throws FileNotFoundException {
-        try {
-            Scan.scan(filename);
-        } catch (ManyLexException e) {
-            // TODO
-            return;
-        }
+    public static void parse(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList {
+        Scan.scan(filename);
 
         final MiniJavaParser lexer = new MiniJavaParser(new FileInputStream(filename));
+        MiniJavaParser.init_errors();
 
         if (debug)
             lexer.enable_tracing();
@@ -46,8 +48,19 @@ public class Parse {
 
         try {
             lexer.Program();
-        } catch (ParseException e) {
-            e.printStackTrace();
+        } catch (ParseException exc) {
+            // Will never happen!
+            exc.printStackTrace();
+            return;
+        }
+
+        List<CompilerException> errors = new ArrayList<CompilerException>();
+        for (ParseException exc : MiniJavaParser.errors) {
+            errors.add(new MyParseException(exc));
+        }
+
+        if (errors.size() > 0) {
+            throw new CompilerExceptionList(errors);
         }
     }
 }

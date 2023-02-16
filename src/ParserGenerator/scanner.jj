@@ -7,7 +7,15 @@ PARSER_BEGIN(MiniJavaParser)
 
 package ParserGenerator;
 
-public class MiniJavaParser {}
+import java.util.List;
+import java.util.ArrayList;
+
+public class MiniJavaParser {
+    public static List<ParseException> errors;
+    public static void init_errors() {
+        errors = new ArrayList<ParseException>();
+    }
+}
 
 PARSER_END(MiniJavaParser)
 
@@ -103,7 +111,11 @@ TOKEN : {
 void Program() :
 {}
 {
-    MainClass() ( ClassDecl() )* <EOF>
+    try {
+        MainClass() ( ClassDecl() )* <EOF>
+    } catch (ParseException exc) {
+        errors.add(exc);
+    }
 }
 
 void MainClass() :
@@ -142,12 +154,20 @@ void Type() :
 void Statement() :
 {}
 {
-      <CURLY_OPEN> ( Statement() )* <CURLY_CLOSE>
-    | <IF> <PAREN_OPEN> Expression() <PAREN_CLOSE> Statement() <ELSE> Statement()
-    | <WHILE> <PAREN_OPEN> Expression() <PAREN_CLOSE> Statement()
-    | <SYSTEM_OUT_PRINTLN> <PAREN_OPEN> Expression() <PAREN_CLOSE> <SEMI_COLON>
-    | <IDENTIFIER> <EQUAL> Expression() <SEMI_COLON>
-    | <IDENTIFIER> <SQUARE_OPEN> Expression() <SQUARE_CLOSE> <EQUAL> Expression() <SEMI_COLON>
+    try {
+          <CURLY_OPEN> ( Statement() )* <CURLY_CLOSE>
+        | <IF> <PAREN_OPEN> Expression() <PAREN_CLOSE> Statement() <ELSE> Statement()
+        | <WHILE> <PAREN_OPEN> Expression() <PAREN_CLOSE> Statement()
+        | <SYSTEM_OUT_PRINTLN> <PAREN_OPEN> Expression() <PAREN_CLOSE> <SEMI_COLON>
+        | <IDENTIFIER> <EQUAL> Expression() <SEMI_COLON>
+        | <IDENTIFIER> <SQUARE_OPEN> Expression() <SQUARE_CLOSE> <EQUAL> Expression() <SEMI_COLON>
+    } catch (ParseException exc) {
+        errors.add(exc);
+        Token t;
+        do {
+            t = getNextToken();
+        } while (t.kind != SEMI_COLON);
+    }
 }
 
 void Expression() :

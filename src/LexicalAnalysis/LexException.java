@@ -1,8 +1,9 @@
 package LexicalAnalysis;
 
 import ParserGenerator.*;
+import ErrorManagement.CompilerException;
 
-public class LexException extends Exception {
+public class LexException extends CompilerException {
     int lineNum;
     int colNum;
     char curChar;
