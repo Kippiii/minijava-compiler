@@ -4,6 +4,8 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import ErrorManagement.CompilerException;
+import ErrorManagement.CompilerExceptionList;
 import ParserGenerator.*;
 
 public class Scan {
@@ -21,22 +23,21 @@ public class Scan {
 
         try {
             scan(filename, debug);
-        } catch (ManyLexException e) {
-            for (LexException e2 : e.lexExceptions) {
+        } catch (CompilerExceptionList e) {
+            for (CompilerException e2 : e) {
                 System.err.printf("%s:%s%n", filename, e2.toString());
+                errors++;
             }
-
-            errors = e.lexExceptions.size();
         }
 
         System.out.printf("filename=%s, errors=%d%n", filename, errors);
     }
 
-    public static void scan(String file) throws ManyLexException, FileNotFoundException {
+    public static void scan(String file) throws CompilerExceptionList, FileNotFoundException {
         scan(file, false);
     }
 
-    public static void scan(String file, boolean debug) throws ManyLexException, FileNotFoundException {
+    public static void scan(String file, boolean debug) throws CompilerExceptionList, FileNotFoundException {
         final MiniJavaParser lexer = new MiniJavaParser(new FileInputStream(file));
 
         if (debug)
@@ -44,7 +45,7 @@ public class Scan {
         else
             lexer.disable_tracing();
 
-        List<LexException> errors = new ArrayList<LexException>();
+        List<CompilerException> errors = new ArrayList<CompilerException>();
         while (true) {
             final Token token = lexer.getNextToken();
             if (token.kind == MiniJavaParserConstants.MONKEY) {
@@ -56,7 +57,7 @@ public class Scan {
         }
 
         if (errors.size() > 0)
-            throw new ManyLexException(errors);
+            throw new CompilerExceptionList(errors);
     }
 
 }

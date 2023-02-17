@@ -39,7 +39,7 @@ public class Utilities {
                 directories.add("Parsing/MyParseException.java");
             case LEXER:
                 directories.add("LexicalAnalysis/Scan.java");
-                directories.add("LexicalAnalysis/ParseException.java");
+                directories.add("LexicalAnalysis/LexException.java");
             default:
                 directories.add("ParserGenerator/scanner.jj");
                 directories.add("ErrorManagement/CompilerException.java");

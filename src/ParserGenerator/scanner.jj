@@ -139,7 +139,7 @@ void VarDecl() :
 void MethodDecl() :
 {}
 {
-    <PUBLIC> Type() <IDENTIFIER> <PAREN_OPEN> ( Type() <IDENTIFIER> ( <COMMA> Type() <IDENTIFIER> )* )? <PAREN_CLOSE> <CURLY_OPEN> VarDecl() Statement() <RETURN> Expression() <SEMI_COLON> <CURLY_CLOSE>
+    <PUBLIC> Type() <IDENTIFIER> <PAREN_OPEN> ( Type() <IDENTIFIER> ( <COMMA> Type() <IDENTIFIER> )* )? <PAREN_CLOSE> <CURLY_OPEN> ( VarDecl() )* ( Statement() )* <RETURN> Expression() <SEMI_COLON> <CURLY_CLOSE>
 }
 
 void Type() :
@@ -173,29 +173,72 @@ void Statement() :
 void Expression() :
 {}
 {
-    BaseExpression() AddToExpression()
+    ExpressionPrec4()
 }
 
-void AddToExpression() :
+void ExpressionPrec4() :
 {}
 {
-      ( <AND> | <LESS> | <PLUS> | <MINUS> | <STAR> ) Expression()
-    | <DOT> <IDENTIFIER> <PAREN_OPEN> ( Expression() ( <COMMA> Expression() )* )? <PAREN_CLOSE>
-    | <SQUARE_OPEN> Expression() <SQUARE_CLOSE>
-    | <DOT> <LENGTH>
-    | {}
+    ExpressionPrec9() ( <AND> ExpressionPrec4() )?
 }
 
-void BaseExpression() :
+void ExpressionPrec9() :
 {}
 {
-      <NEW> <INT> <SQUARE_OPEN> Expression() <SQUARE_CLOSE>
-    | <NEW> <IDENTIFIER> <PAREN_OPEN> <PAREN_CLOSE>
-    | <BANG> Expression()
-    | <INTEGER_LITERAL>
+    ExpressionPrec11() ( <LESS> ExpressionPrec9() )?
+}
+
+void ExpressionPrec11() :
+{}
+{
+    ExpressionPrec12() (
+          <PLUS> ExpressionPrec11()
+        | <MINUS> ExpressionPrec11()
+    )?
+}
+
+void ExpressionPrec12() :
+{}
+{
+    ExpressionPrec14() ( <STAR> ExpressionPrec12() )?
+}
+
+void ExpressionPrec14() :
+{}
+{
+      <BANG> Expression()
+    | ExpressionPrec15()
+}
+
+void ExpressionPrec15() :
+{}
+{
+    ExpressionPrec16() (
+          <SQUARE_OPEN> Expression() <SQUARE_CLOSE>
+        | <DOT> (
+              <IDENTIFIER> <PAREN_OPEN> ( Expression() ( <COMMA> Expression() )* )? <PAREN_CLOSE>
+            | <LENGTH>
+        )
+    )?
+}
+
+void ExpressionPrec16() :
+{}
+{
+      <PAREN_OPEN> Expression() <PAREN_CLOSE>
+    | ExpressionBaseCase()
+}
+
+void ExpressionBaseCase() :
+{}
+{
+      <INTEGER_LITERAL>
     | <TRUE>
     | <FALSE>
     | <IDENTIFIER>
     | <THIS>
-    | <PAREN_OPEN> Expression() <PAREN_CLOSE>
+    | <NEW> (
+          <INT> <SQUARE_OPEN> <SQUARE_CLOSE>
+        | <IDENTIFIER> <PAREN_OPEN> <PAREN_CLOSE>
+    )
 }

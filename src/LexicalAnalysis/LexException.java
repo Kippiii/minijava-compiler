@@ -14,6 +14,9 @@ public class LexException extends CompilerException {
     }
 
     public String toString() {
-        return String.format("%03d.%03d: ERROR -- illegal character %c", lineNum, colNum, curChar);
+        String errMsg = String.format("%03d.%03d: ERROR -- illegal character ", lineNum, colNum);
+        if (((int) curChar) <= 31 || ((int) curChar) == 127)
+            return errMsg + Character.getName(curChar);
+        return errMsg + Character.toString(curChar);
     }
 }
