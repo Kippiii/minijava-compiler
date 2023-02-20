@@ -22,7 +22,7 @@ PARSER_END(MiniJavaParser)
 SKIP : {
       < #NEW_LINE: "\n" | "\r" >
     | < "/*" ((~["*"])* ("*" ~["/"])?)* ("*")? "*/" >
-    | < "//" (~[])* <NEW_LINE> >
+    | < "//" (~[ "\n", "\r" ])* <NEW_LINE> >
     | < <NEW_LINE> >
     | < " " | "\t" | "\f" >
 }
@@ -238,7 +238,7 @@ void ExpressionBaseCase() :
     | <IDENTIFIER>
     | <THIS>
     | <NEW> (
-          <INT> <SQUARE_OPEN> <SQUARE_CLOSE>
+          <INT> <SQUARE_OPEN> Expression() <SQUARE_CLOSE>
         | <IDENTIFIER> <PAREN_OPEN> <PAREN_CLOSE>
     )
 }
