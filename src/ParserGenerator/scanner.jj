@@ -104,7 +104,7 @@ TOKEN : {
     | < #LETTER: ["a" - "z"] | ["A" - "Z"] >
     | < #DIGIT: ["0" - "9"] >
     | < IDENTIFIER: <LETTER> (<LETTER> | <DIGIT> | "_")* >
-    | < INTEGER_LITERAL: (<DIGIT>)+ >
+    | < INTEGER_LITERAL: "0" | (["1" - "9"]) (<DIGIT>)* >
     | < MONKEY: ~[] >
 }
 
@@ -127,7 +127,8 @@ void MainClass() :
 void ClassDecl() :
 {}
 {
-    <CLASS> <IDENTIFIER> ( <EXTENDS> <IDENTIFIER> )? <CURLY_OPEN> ( VarDecl() )* ( MethodDecl() )* <CURLY_CLOSE>
+      <CLASS> <IDENTIFIER> ( <EXTENDS> <IDENTIFIER> )? <CURLY_OPEN> ( VarDecl() )* ( MethodDecl() )* <CURLY_CLOSE>
+    | <IDENTIFIER> <IDENTIFIER> <PAREN_OPEN> ( Type() <IDENTIFIER> ( <COMMA> Type() <IDENTIFIER> )* )? <PAREN_CLOSE> <CURLY_OPEN> <CURLY_CLOSE>
 }
 
 void VarDecl() :
