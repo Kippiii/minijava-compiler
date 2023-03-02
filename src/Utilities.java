@@ -13,14 +13,17 @@ public class Utilities {
 
     public enum Phase {
         LEXER,
-        PARSER
+        PARSER,
+        ABSTRACT_BUILDER,
     }
     public static Phase getPhase(String phaseStr) {
         if (phaseStr.equals("lexer"))
             return Phase.LEXER;
         if (phaseStr.equals("parser"))
             return Phase.PARSER;
-        return Phase.PARSER;
+        if (phaseStr.equals("abstract"))
+            return Phase.ABSTRACT_BUILDER;
+        return Phase.ABSTRACT_BUILDER;
     }
     public static String getDirectory(Phase phase) {
         switch(phase) {
@@ -28,12 +31,16 @@ public class Utilities {
                 return "LexicalAnalysis";
             case PARSER:
                 return "Parsing";
+            case ABSTRACT_BUILDER:
+                return "AbstractSyntax";
         }
         return "";
     }
     public static List<String> getDirectoriesToAdd(Phase phase) {
         List<String> directories = new ArrayList<String>();
         switch(phase) {
+            case ABSTRACT_BUILDER:
+                directories.add("AbstractSyntax/BuildAbstract.java")
             case PARSER:
                 directories.add("Parsing/Parse.java");
                 directories.add("Parsing/MyParseException.java");
