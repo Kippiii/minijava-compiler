@@ -108,60 +108,76 @@ TOKEN : {
     | < MONKEY: ~[] >
 }
 
-void Program() :
-{}
+Program Program() :
+{MainClass mainClass; ClassDecl classDecl; List<ClassDecl> classDecls;}
 {
     try {
-        MainClass() ( ClassDecl() )* <EOF>
+        { classDecls = new ArrayList<ClassDecl>(); }
+        mainClass=MainClass() ( classDecl=ClassDecl() { classDecls.add(classDecl); } )* <EOF>
     } catch (ParseException exc) {
         errors.add(exc);
     }
+    { return new Program(mainClass, classDecls); }
 }
 
-void MainClass() :
-{}
+MainClass MainClass() :
+{Identifier name; Identifier args; Statement s;}
 {
-    <CLASS> <IDENTIFIER> <CURLY_OPEN> <PUBLIC> <STATIC> <VOID> <MAIN> <PAREN_OPEN> <STRING> <SQUARE_OPEN> <SQUARE_CLOSE> <IDENTIFIER> <PAREN_CLOSE> <CURLY_OPEN> Statement() <CURLY_CLOSE> <CURLY_CLOSE>
+    <CLASS> name=Identifier() <CURLY_OPEN> <PUBLIC> <STATIC> <VOID> <MAIN> <PAREN_OPEN> <STRING> <SQUARE_OPEN> <SQUARE_CLOSE> args=Identifier() <PAREN_CLOSE> <CURLY_OPEN> s=Statement() <CURLY_CLOSE> <CURLY_CLOSE>
+    { return new MainClass(name, args, s); }
 }
 
-void ClassDecl() :
-{}
+ClassDecl ClassDecl() :
+{Identifier name; Identifier extended; boolean isExtended; FieldDecl fieldDecl; List<FieldDecl> fieldDecls; MethodDecl methodDecl; List<MethodDecl> methodDecls;}
 {
-      <CLASS> <IDENTIFIER> ( <EXTENDS> <IDENTIFIER> )? <CURLY_OPEN> ( VarDecl() )* ( MethodDecl() )* <CURLY_CLOSE>
-    | <IDENTIFIER> <IDENTIFIER> <PAREN_OPEN> ( Type() <IDENTIFIER> ( <COMMA> Type() <IDENTIFIER> )* )? <PAREN_CLOSE> <CURLY_OPEN> <CURLY_CLOSE>
+      { isExtended = false; } <CLASS> name=Identifier() ( <EXTENDS> extended=Identifier() { isExtended = true; } )? <CURLY_OPEN>
+        ( fieldDecl=VarDecl() { fieldDecls.add(fieldDecl); } )* ( methodDecl=MethodDecl() { methodDecls.add(methodDecl); } )*
+      <CURLY_CLOSE>
+      { if (isExtended) return new ExtendingClassDecl(name, extended, fieldDecls, methodDecls); else return new SimpleClassDecl(name, fieldDecls, methodDecls); }
+    | <IDENTIFIER> <IDENTIFIER> <PAREN_OPEN> ( Type() <IDENTIFIER> ( <COMMA> Type() <IDENTIFIER> )* )? <PAREN_CLOSE> <CURLY_OPEN> <CURLY_CLOSE> // TODO record case
 }
 
-void VarDecl() :
-{}
+VarDecl VarDecl() :
+{Type type; Identifier name;}
 {
-    Type() <IDENTIFIER> <SEMI_COLON>
+    type=Type() name=Identifier() <SEMI_COLON>
+    { return new VarDecl(type, name); }
 }
 
-void MethodDecl() :
-{}
+MethodDecl MethodDecl() :
+{Type type; Identifier name; Formal formal; List<Formal> formals; VarDecl varDecl; List<VarDecl> varDecls; Statement statement; List<Statement> statements; Expression returnVal;}
 {
-    <PUBLIC> Type() <IDENTIFIER> <PAREN_OPEN> ( Type() <IDENTIFIER> ( <COMMA> Type() <IDENTIFIER> )* )? <PAREN_CLOSE> <CURLY_OPEN> ( VarDecl() )* ( Statement() )* <RETURN> Expression() <SEMI_COLON> <CURLY_CLOSE>
+    { formals = new ArrayList<Formal>(); varDecls = new ArrayList<VarDecl>(); statements = new ArrayList<Statement>(); }
+    <PUBLIC> type=Type() name=Identifier() <PAREN_OPEN> ( formal=Formal() { formals.add(formal); } ( <COMMA> formal=Formal() { formals.add(formal); } )* )? <PAREN_CLOSE> <CURLY_OPEN> ( varDecl=VarDecl() { varDecls.add(varDecl); } )* ( statement=Statement() { statements.add(statement); } )* <RETURN> returnVal=Expression() <SEMI_COLON> <CURLY_CLOSE>
+    { return new MethodDecl(type, name, formals, varDecls, statements, returnVal); }
 }
 
-void Type() :
-{}
+Formal Formal() :
+{Type type; Identifier name;}
 {
-      <INT> <SQUARE_OPEN> <SQUARE_CLOSE>
-    | <BOOLEAN>
-    | <INT>
-    | <IDENTIFIER>
+    type=Type() name=Identifier()
+    { return new Formal(type, name); }
 }
 
-void Statement() :
-{}
+Type Type() :
+{Identifier name;}
+{
+      <INT> <SQUARE_OPEN> <SQUARE_CLOSE> { return new IntArrayType(); }
+    | <BOOLEAN> { return new BooleanType(); }
+    | <INT> { return new IntegerType(); }
+    | name=Identifier() { return new IdentifierType(name); }
+}
+
+Statement Statement() :
+{Statement s;}
 {
     try {
-          <CURLY_OPEN> ( Statement() )* <CURLY_CLOSE>
-        | <IF> <PAREN_OPEN> Expression() <PAREN_CLOSE> Statement() <ELSE> Statement()
-        | <WHILE> <PAREN_OPEN> Expression() <PAREN_CLOSE> Statement()
-        | <SYSTEM_OUT_PRINTLN> <PAREN_OPEN> Expression() <PAREN_CLOSE> <SEMI_COLON>
-        | <IDENTIFIER> <EQUAL> Expression() <SEMI_COLON>
-        | <IDENTIFIER> <SQUARE_OPEN> Expression() <SQUARE_CLOSE> <EQUAL> Expression() <SEMI_COLON>
+          s=BlockStatement() { return s; }
+        | s=IfStatement() { return s; }
+        | s=WhileStatement() { return s; }
+        | s=PrintStatement() { return s; }
+        | s=AssignStatement() { return s; }
+        | s=ArrAssignStatement() { return s; }
     } catch (ParseException exc) {
         errors.add(exc);
         Token t;
@@ -171,75 +187,140 @@ void Statement() :
     }
 }
 
-void Expression() :
-{}
+Statement BlockStatement() :
+{Statement statement; List<Statements> statements;}
 {
-    ExpressionPrec4()
+    { statements = new ArrayList<Statement>(); }
+    <CURLY_OPEN> ( statement=Statement() { statements.add(statement); } )* <CURLY_CLOSE>
+    { return new Block(statements); }
 }
 
-void ExpressionPrec4() :
-{}
+Statement IfStatement() :
+{Expression condition; Statement ifTrue; Statement ifFalse;}
 {
-    ExpressionPrec9() ( <AND> ExpressionPrec4() )?
+    <IF> <PAREN_OPEN> condition=Expression() <PAREN_CLOSE> ifTrue=Statement() <ELSE> ifFalse=Statement()
+    { return new If(condition, ifTrue, ifFalse); }
 }
 
-void ExpressionPrec9() :
-{}
+Statement WhileStatement() :
+{Expression condition; Statement statement;}
 {
-    ExpressionPrec11() ( <LESS> ExpressionPrec9() )?
+    <WHILE> <PAREN_OPEN> condition=Expression() <PAREN_CLOSE> statement=Statement()
+    { return new While(condition, statement); }
 }
 
-void ExpressionPrec11() :
-{}
+Statement PrintStatement() :
+{Expression toPrint;}
 {
-    ExpressionPrec12() (
-          <PLUS> ExpressionPrec11()
-        | <MINUS> ExpressionPrec11()
+    <SYSTEM_OUT_PRINTLN> <PAREN_OPEN> toPrint=Expression() <PAREN_CLOSE> <SEMI_COLON>
+    { return new Print(toPrint); }
+}
+
+Statement AssignStatement() :
+{Identifier name; Expression value;}
+{
+    name=Identifier() <EQUAL> value=Expression() <SEMI_COLON>
+    { return new Assign(name, value); }
+}
+
+Statement ArrAssignStatement() :
+{Identifier name; Expression index; Expression value;}
+{
+    name=Identifier() <SQUARE_OPEN> index=Expression() <SQUARE_CLOSE> <EQUAL> valeu=Expression() <SEMI_COLON>
+    { return new ArrayAssign(name, index, value); }
+}
+
+Expression Expression() :
+{Expression e;}
+{
+    e=ExpressionPrec4()
+    { return e; }
+}
+
+Expression ExpressionPrec4() :
+{Expression e1, e2; boolean didAnd;}
+{
+    { didAnd = false; }
+    e1=ExpressionPrec9() ( <AND> e2=ExpressionPrec4() { didAnd = true; } )?
+    { if (didAnd) return new And(e1, e2); else return e1; }
+}
+
+Expression ExpressionPrec9() :
+{Expression e1, e2; boolean didLess;}
+{
+    { didLess = false; }
+    e1=ExpressionPrec11() ( <LESS> e2=ExpressionPrec9() { didLess = true; } )?
+    { if (didLess) return new LessThan(e1, e2); else e1; }
+}
+
+Expression ExpressionPrec11() :
+{Expression e1, e2; boolean didAdd; boolean didMinus;}
+{
+    { didAdd = false; didMinus = false; }
+    e1=ExpressionPrec12() (
+          <PLUS> e2=ExpressionPrec11() { didAdd = true; }
+        | <MINUS> e2=ExpressionPrec11() { didMinus = true; }
     )?
+    { if (didAdd) return new Plus(e1, e2); else if (didMinus) return new Minus(e1, e2); return e1; }
 }
 
-void ExpressionPrec12() :
-{}
+Expression ExpressionPrec12() :
+{Expression e1, e2; boolean didTimes;}
 {
-    ExpressionPrec14() ( <STAR> ExpressionPrec12() )?
+    { didTimes = false; }
+    e1=ExpressionPrec14() ( <STAR> e2=ExpressionPrec12() { didTimes = true; } )?
+    { if (didTimes) return new Times(e1, e2); else return e1; }
 }
 
-void ExpressionPrec14() :
-{}
+Expression ExpressionPrec14() :
+{Expression e;}
 {
-      <BANG> Expression()
-    | ExpressionPrec15()
+      <BANG> e=Expression() { return new Not(e); }
+    | e=ExpressionPrec15() { return e; }
 }
 
-void ExpressionPrec15() :
-{}
+Expression ExpressionPrec15() :
+{Identifier field; Expression e1, e2; List<Expression> el;}
 {
-    ExpressionPrec16() (
-          <SQUARE_OPEN> Expression() <SQUARE_CLOSE>
+    { el = new ArrayList<Expression>(); }
+    e1=ExpressionPrec16() (
+          <SQUARE_OPEN> e2=Expression() <SQUARE_CLOSE> { return ArrayLookup(e1, e2); }
         | <DOT> (
-              <IDENTIFIER> <PAREN_OPEN> ( Expression() ( <COMMA> Expression() )* )? <PAREN_CLOSE>
-            | <LENGTH>
+              field=Identifier() <PAREN_OPEN> ( e2=Expression() { el.add(e2); } ( <COMMA> e2=Expression() { el.add(e2); } )* )? <PAREN_CLOSE> { return new Call(e1, field, el); }
+            | <LENGTH> { return new ArrayLength(e1); }
         )
     )?
 }
 
-void ExpressionPrec16() :
-{}
+Expression ExpressionPrec16() :
+{Expression e;}
 {
-      <PAREN_OPEN> Expression() <PAREN_CLOSE>
-    | ExpressionBaseCase()
+      <PAREN_OPEN> e=Expression() <PAREN_CLOSE> { return e; }
+    | e=ExpressionBaseCase() { return e; }
 }
 
-void ExpressionBaseCase() :
-{}
+Expression ExpressionBaseCase() :
+{Expression e; String id; Identifier identifier;}
 {
-      <INTEGER_LITERAL>
-    | <TRUE>
-    | <FALSE>
-    | <IDENTIFIER>
-    | <THIS>
+      e=IntegerLiteral() { return e; }
+    | <TRUE> { return new True(); }
+    | <FALSE> { return new False(); }
+    | id=<IDENTIFIER> { return new IdentifierExp(id); }
+    | <THIS> { return new This(); }
     | <NEW> (
-          <INT> <SQUARE_OPEN> Expression() <SQUARE_CLOSE>
-        | <IDENTIFIER> <PAREN_OPEN> <PAREN_CLOSE>
+          <INT> <SQUARE_OPEN> e=Expression() <SQUARE_CLOSE { return new NewArray(e); }
+        | identifier=Identifier() <PAREN_OPEN> <PAREN_CLOSE> { return new NewObject(identifier); }
     )
+}
+
+Expression IntegerLiteral() :
+{String val;}
+{
+    val=<INTEGER_LITERAL> { return new IntegerLiteral(Integer.valueOf(val)); }
+}
+
+Identifier Identifier() :
+{String id;}
+{
+    id=<IDENTIFIER> { return new Identifier(id); }
 }
