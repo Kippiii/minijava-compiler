@@ -49,7 +49,8 @@ public class BuildAbstract {
         }
 
         if (debug) {
-            // TODO Print the tree
+            TreePrinter tp = new TreePrinter();
+            tp.visit(program);
         }
 
         return program;
