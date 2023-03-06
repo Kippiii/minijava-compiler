@@ -13,7 +13,8 @@ check.jar:
     $(JAVAC) LexicalAnalysis/*.java
     $(JAVAC) Parsing/*java
     $(JAVAC) -classpath .:$SUPPORT AbstractSyntax/*.java
-    jar cfme $@ Manifest AbstractSyntax.BuildAbstract */*.class
+    $(JAVAC) -classpath .:$SUPPORT SemanticChecking/*.java
+    jar cfme $@ Manifest SemanticChecking.Check */*.class
 
 clean:
     rm -f check.jar
@@ -21,3 +22,4 @@ clean:
     rm -f LexicalAnalysis/*.class
     rm -f Parsing/*.class
     rm -f AbstractSyntax/*.class
+    rm -f SemanticChecking/*.class
