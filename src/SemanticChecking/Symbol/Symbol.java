@@ -5,7 +5,7 @@ import java.util.Hashtable;
 
 public class Symbol {
     private String name;
-    private Symbol(String n) {
+    public Symbol(String n) {
         this.name = n;
     }
     private static Dictionary dict = new Hashtable();
