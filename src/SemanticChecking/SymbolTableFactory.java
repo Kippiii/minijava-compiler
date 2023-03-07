@@ -1,7 +1,5 @@
 package SemanticChecking;
 
-import SemanticChecking.Symbol.Table;
-
 public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
     Table<Void> table;
 
