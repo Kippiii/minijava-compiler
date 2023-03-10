@@ -5,6 +5,7 @@ import ErrorManagement.CompilerExceptionList;
 import ParserGenerator.MiniJavaParser;
 import ParserGenerator.ParseException;
 import Parsing.Parse;
+import syntax.*;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -12,7 +13,7 @@ import java.io.FileNotFoundException;
 public class BuildAbstract {
     static String filename = "Factorial.java";
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException {
         if (args.length >= 1)
             filename = args[0];
         boolean debug = args.length >= 2 && args[1].equals("debug");
@@ -38,6 +39,7 @@ public class BuildAbstract {
         Parse.parse(filename);
 
         final MiniJavaParser parser = new MiniJavaParser(new FileInputStream(filename));
+        parser.disable_tracing();
 
         Program program;
         try {

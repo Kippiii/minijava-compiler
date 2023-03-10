@@ -1,6 +1,7 @@
 package AbstractSyntax;
 
 import java.io.PrintWriter;
+import syntax.*;
 
 public class TreePrinter implements SyntaxTreeVisitor <Void> {
     private final PrintWriter pw;
@@ -44,17 +45,17 @@ public class TreePrinter implements SyntaxTreeVisitor <Void> {
     public Void visit(MainClass mc) {
         tab();
         this.print("class ");
-        mc.i1.accept(this);
+        mc.nameOfMainClass.accept(this);
         this.println(" {");
         tab++;
 
         tab();
         this.print("public static void main(String[] ");
-        mc.i2.accept(this);
+        mc.nameOfCommandLineArgs.accept(this);
         this.println(") {");
         tab++;
 
-        mc.s.accept(this);
+        mc.body.accept(this);
         tab--;
         tab();
         this.println("}");
@@ -71,11 +72,10 @@ public class TreePrinter implements SyntaxTreeVisitor <Void> {
         this.println(" {");
         tab++;
 
-        tab();
-        for (FieldDecl fd : cd.vl) {
+        for (FieldDecl fd : cd.fields) {
             fd.accept(this);
         }
-        for (MethodDecl md : cd.ml) {
+        for (MethodDecl md : cd.methods) {
             md.accept(this);
         }
 
@@ -94,11 +94,10 @@ public class TreePrinter implements SyntaxTreeVisitor <Void> {
         this.println(" {");
         tab++;
 
-        tab();
-        for (FieldDecl fd : cd.vl) {
+        for (FieldDecl fd : cd.fields) {
             fd.accept(this);
         }
-        for (MethodDecl md : cd.ml) {
+        for (MethodDecl md : cd.methods) {
             md.accept(this);
         }
 
@@ -115,11 +114,11 @@ public class TreePrinter implements SyntaxTreeVisitor <Void> {
         this.print(" ");
         md.i.accept(this);
         this.print(" (");
-        if (md.fl.size() > 0)
-            md.fl.get(0).accept(this);
-        for (int i = 1; i < md.fl.size(); i++) {
+        if (md.formals.size() > 0)
+            md.formals.get(0).accept(this);
+        for (int i = 1; i < md.formals.size(); i++) {
             this.print(", ");
-            md.fl.get(i).accept(this);
+            md.formals.get(i).accept(this);
         }
         this.println(") {");
         tab++;
@@ -137,7 +136,7 @@ public class TreePrinter implements SyntaxTreeVisitor <Void> {
         this.println(";");
         tab--;
         tab();
-        this.print("}");
+        this.println("}");
         return null;
     }
 
@@ -187,7 +186,7 @@ public class TreePrinter implements SyntaxTreeVisitor <Void> {
     }
 
     public Void visit(IdentifierType it) {
-        this.print(it.s);
+        this.print(it.nameOfType);
         return null;
     }
 
@@ -254,7 +253,7 @@ public class TreePrinter implements SyntaxTreeVisitor <Void> {
         w.e.accept(this);
         this.print(")");
 
-        if (f.s instanceof Block) {
+        if (w.s instanceof Block) {
             this.println(" {");
             tab++;
             for (Statement s : ((Block) w.s).sl) {
@@ -266,7 +265,7 @@ public class TreePrinter implements SyntaxTreeVisitor <Void> {
         } else {
             this.println("");
             tab++;
-            f.s.accept(this);
+            w.s.accept(this);
             tab--;
         }
         return null;
@@ -356,6 +355,7 @@ public class TreePrinter implements SyntaxTreeVisitor <Void> {
     public Void visit(final ArrayLength al) {
         al.expressionForArray.accept(this);
         this.print(".length");
+        return null;
     }
 
     public Void visit(Call c) {
@@ -386,12 +386,12 @@ public class TreePrinter implements SyntaxTreeVisitor <Void> {
     }
 
     public Void visit(IntegerLiteral il) {
-        this.print(il.i);
+        this.print(String.valueOf(il.i));
         return null;
     }
 
-    public Void visit(IdentiferExp ie) {
-        this.print(ei.s);
+    public Void visit(IdentifierExp ie) {
+        this.print(ie.s);
         return null;
     }
 
