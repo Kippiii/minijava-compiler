@@ -1,22 +1,27 @@
 package SemanticChecking;
 
+import ErrorManagement.CompilerException;
 import SemanticChecking.Symbol.BasicType;
 import SemanticChecking.Symbol.ClassType;
 import SemanticChecking.Symbol.MethodType;
 import SemanticChecking.Symbol.Symbol;
+import syntax.*;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
-public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
-    private final PrintWriter pw;
+public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
+    private final boolean debug;
     HashMap<Symbol, ClassType> classes;
     ClassType curClass;
     MethodType curMethod;
+    List<CompilerException> errors;
 
     private void debug(String s) {
-        if (this.pw != null) {
-            pw.println(s);
+        if (this.debug) {
+            System.out.println(s);
         }
     }
 
@@ -50,7 +55,7 @@ public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
             return "void";
         }
         if (t instanceof IdentifierType) {
-            return ((IdentifierType) t).s;
+            return ((IdentifierType) t).nameOfType;
         }
         return "ERROR";
     }
@@ -59,14 +64,16 @@ public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
         this.classes = new HashMap<Symbol, ClassType>();
         this.curClass = null;
         this.curMethod = null;
-        this.pw = null;
+        this.debug = false;
+        this.errors = new ArrayList<CompilerException>();
     }
 
-    public SymbolTableFactory(PrintWriter pw) {
+    public SymbolTableFactory(boolean debug) {
         this.classes = new HashMap<Symbol, ClassType>();
         this.curClass = null;
         this.curMethod = null;
-        this.pw = pw;
+        this.debug = debug;
+        this.errors = new ArrayList<CompilerException>();
     }
 
     public Void visit(Program p) {
@@ -81,32 +88,32 @@ public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
     }
 
     public Void visit(MainClass mc) {
-        this.debug("Exploring class " + mc.i1.s);
-        this.curClass = new ClassType(mc.i1.s);
+        this.debug("Exploring class " + mc.nameOfMainClass.s);
+        this.curClass = new ClassType(mc.nameOfMainClass.s);
 
         // Exploring main method
-        this.debug("Exploring method " + mc.i1.s + ".main");
+        this.debug("Exploring method " + mc.nameOfMainClass.s + ".main");
         this.curMethod = new MethodType("main");
-        if (!this.checkMethodVar(new Symbol(mc.i2.s))) {
-            // TODO Error
+        if (!this.checkMethodVar(new Symbol(mc.nameOfCommandLineArgs.s))) {
+            this.errors.add(new NameConflictError(mc.nameOfCommandLineArgs.s, mc.nameOfCommandLineArgs.lineNumber, mc.nameOfCommandLineArgs.columnNumber));
         } else {
-            this.debug(mc.i1.s + ".main: " + mc.i2.s + "::String[]");
-            this.curMethod.setArg(new Symbol(mc.i2.s), new BasicType("String[]"));
+            this.debug(mc.nameOfMainClass.s + ".main: " + mc.nameOfCommandLineArgs.s + "::String[]");
+            this.curMethod.setArg(new Symbol(mc.nameOfCommandLineArgs.s), new BasicType("String[]"));
         }
-        mc.s.accept(this);
+        mc.body.accept(this);
 
         // Adding main method
         if (!this.checkClassVar(new Symbol("main"))) {
-            // TODO Error
+            this.errors.add(new NameConflictError("main", mc.lineNumber, mc.columnNumber));
         } else {
             this.curClass.setVar(new Symbol("main"), this.curMethod);
         }
         this.curMethod = null;
 
-        if (!this.checkClassName(new Symbol(mc.i1.s))) {
-            // TODO error
+        if (!this.checkClassName(new Symbol(mc.nameOfMainClass.s))) {
+            this.errors.add(new NameConflictError(mc.nameOfMainClass.s, mc.nameOfMainClass.lineNumber, mc.nameOfMainClass.columnNumber));
         } else {
-            this.classes.put(new Symbol(mc.i1.s), this.curClass);
+            this.classes.put(new Symbol(mc.nameOfMainClass.s), this.curClass);
         }
         this.curClass = null;
         return null;
@@ -116,15 +123,15 @@ public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
         this.debug("Exploring class " + cd.i.s);
         this.curClass = new ClassType(cd.i.s);
 
-        for (FieldDecl fd : cd.vl) {
+        for (FieldDecl fd : cd.fields) {
             fd.accept(this);
         }
-        for (MethodDecl md : cd.ml) {
+        for (MethodDecl md : cd.methods) {
             md.accept(this);
         }
 
         if (!this.checkClassName(new Symbol(cd.i.s))) {
-            // TODO error
+            this.errors.add(new NameConflictError(cd.i.s, cd.i.lineNumber, cd.i.columnNumber));
         } else {
             this.classes.put(new Symbol(cd.i.s), this.curClass);
         }
@@ -137,15 +144,15 @@ public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
         this.curClass = new ClassType(cd.i.s);
 
         this.curClass.setExtName(new Symbol(cd.j.s));
-        for (FieldDecl fd : cd.vl) {
+        for (FieldDecl fd : cd.fields) {
             fd.accept(this);
         }
-        for (MethodDecl md : cd.ml) {
+        for (MethodDecl md : cd.methods) {
             md.accept(this);
         }
 
         if (!this.checkClassName(new Symbol(cd.i.s))) {
-            // TODO error
+            this.errors.add(new NameConflictError(cd.i.s, cd.i.lineNumber, cd.i.columnNumber));
         } else {
             this.classes.put(new Symbol(cd.i.s), this.curClass);
         }
@@ -159,7 +166,7 @@ public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
 
         String retTypeStr = this.getTypeString(md.t);
         this.curMethod.setRetType(new BasicType(retTypeStr));
-        for (FormalDecl f : md.fl) {
+        for (FormalDecl f : md.formals) {
             f.accept(this);
         }
         for (LocalDecl ld : md.locals) {
@@ -171,7 +178,7 @@ public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
         md.e.accept(this);
 
         if (!this.checkClassVar(new Symbol(md.i.s))) {
-            // TODO error
+            this.errors.add(new NameConflictError(md.i.s, md.i.lineNumber, md.i.columnNumber));
         } else {
             this.curClass.setVar(new Symbol(md.i.s), this.curMethod);
         }
@@ -180,30 +187,33 @@ public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
     }
 
     public Void visit(FieldDecl fd) {
-        if (!this.checkClassVar(fd.i.s)) {
-            // TODO error
+        if (!this.checkClassVar(new Symbol(fd.i.s))) {
+            this.errors.add(new NameConflictError(fd.i.s, fd.i.lineNumber, fd.i.columnNumber));
         } else {
             String typeStr = this.getTypeString(fd.t);
+            debug(this.curClass.getName() + "." + this.curMethod.getName() + ": " + fd.i.s + "::" + typeStr);
             this.curClass.setVar(new Symbol(fd.i.s), new BasicType(typeStr));
         }
         return null;
     }
 
     public Void visit(LocalDecl ld) {
-        if (!this.checkMethodVar(ld.i.s)) {
-            // TODO error
+        if (!this.checkMethodVar(new Symbol(ld.i.s))) {
+            this.errors.add(new NameConflictError(ld.i.s, ld.i.lineNumber, ld.i.columnNumber));
         } else {
             String typeStr = this.getTypeString(ld.t);
+            debug(this.curClass.getName() + "." + this.curMethod.getName() + ": " + ld.i.s + "::" + typeStr);
             this.curMethod.setVar(new Symbol(ld.i.s), new BasicType(typeStr));
         }
         return null;
     }
 
     public Void visit(FormalDecl fd) {
-        if (!this.checkMethodVar(fd.i.s)) {
-            // TODO error
+        if (!this.checkMethodVar(new Symbol(fd.i.s))) {
+            this.errors.add(new NameConflictError(fd.i.s, fd.i.lineNumber, fd.i.columnNumber));
         } else {
             String typeStr = this.getTypeString(fd.t);
+            debug(this.curClass.getName() + "." + this.curMethod.getName() + ": " + fd.i.s + "::" + typeStr);
             this.curMethod.setArg(new Symbol(fd.i.s), new BasicType(typeStr));
         }
         return null;
@@ -230,89 +240,60 @@ public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
     }
 
     public Void visit(final Block b) {
-        for (Statement s : b.sl) {
-            s.accept(this);
-        }
         return null;
     }
 
     public Void visit(final If f) {
-        f.e.accept(this);
-        f.s1.accept(this);
-        f.s2.accept(this);
         return null;
     }
 
     public Void visit(final While w) {
-        w.e.accept(this);
-        w.s.accept(this);
         return null;
     }
 
     public Void visit(final Print p) {
-        p.e.accept(this);
         return null;
     }
 
     public Void visit(final Assign a) {
         a.i.accept(this);
-        a.e.accept(this);
         return null;
     }
 
     public Void visit(ArrayAssign aa) {
         aa.nameOfArray.accept(this);
-        aa.indexInArray.accept(this);
-        aa.e.accept(this);
         return null;
     }
 
     public Void visit(final And a) {
-        a.e1.accept(this);
-        a.e2.accept(this);
         return null;
     }
 
     public Void visit(final LessThan lt) {
-        lt.e1.accept(this);
-        lt.e2.accept(this);
         return null;
     }
 
     public Void visit(final Plus p) {
-        p.e1.accept(this);
-        p.e2.accept(this);
         return null;
     }
 
     public Void visit(final Minus m) {
-        m.e1.accept(this);
-        m.e2.accept(this);
         return null;
     }
 
     public Void visit(final Times t) {
-        t.e1.accept(this);
-        t.e2.accept(this);
         return null;
     }
 
     public Void visit(final ArrayLookup al) {
-        al.expressionForArray.accept(this);
-        al.indexInArray.accept(this);
         return null;
     }
 
     public Void visit(final ArrayLength al) {
-        al.expressionForArray.accept(this);
         return null;
     }
 
     public Void visit(Call c) {
-        c.e.accept(this);
-        for (Expression e : c.el) {
-            e.accept(this);
-        }
         return null;
     }
 
@@ -329,9 +310,6 @@ public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
     }
 
     public Void visit(IdentifierExp ie) {
-        if (this.checkMethodVar(new Symbol(ie.s))) {
-            // TODO Error
-        }
         return null;
     }
 
@@ -340,7 +318,6 @@ public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
     }
 
     public Void visit(NewArray na) {
-        na.e.accept(this);
         return null;
     }
 
@@ -349,7 +326,6 @@ public class SymbolTableFactory extends SyntaxTreeVisitor <Void> {
     }
 
     public Void visit(Not n) {
-        n.e.accept(this);
         return null;
     }
 

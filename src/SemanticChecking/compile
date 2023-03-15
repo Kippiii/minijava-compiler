@@ -1,1 +1,1 @@
-java -jar check.jar $@
+java -cp .:support.jar SemanticChecking.Check $@

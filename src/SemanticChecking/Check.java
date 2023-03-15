@@ -3,8 +3,13 @@ package SemanticChecking;
 import AbstractSyntax.BuildAbstract;
 import ErrorManagement.CompilerException;
 import ErrorManagement.CompilerExceptionList;
+import SemanticChecking.Symbol.ClassType;
+import SemanticChecking.Symbol.Symbol;
+import syntax.Program;
 
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.util.HashMap;
 
 public class Check {
     static String filename = "Factorial.java";
@@ -34,9 +39,21 @@ public class Check {
     public static Program check(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList {
         Program program = BuildAbstract.buildAbstractTree(filename);
 
-        // TODO Check variable declaration
+        // Create symbol table
+        HashMap<Symbol, ClassType> symbolTable;
+        SymbolTableFactory stf;
+        if (debug)
+            stf = new SymbolTableFactory(true);
+        else
+            stf = new SymbolTableFactory();
+        stf.visit(program);
+        if (stf.errors.size() > 0)
+            throw new CompilerExceptionList(stf.errors);
+        symbolTable = stf.classes;
 
-        // TODO Check typing
+        // TODO Print symbol table
+
+        // TODO Check typing and variable existence
 
         return program;
     }
