@@ -94,6 +94,7 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
         // Exploring main method
         this.debug("Exploring method " + mc.nameOfMainClass.s + ".main");
         this.curMethod = new MethodType("main");
+        this.curMethod.setRetType(new BasicType("void"));
         if (!this.checkMethodVar(new Symbol(mc.nameOfCommandLineArgs.s))) {
             this.errors.add(new NameConflictError(mc.nameOfCommandLineArgs.s, mc.nameOfCommandLineArgs.lineNumber, mc.nameOfCommandLineArgs.columnNumber));
         } else {
