@@ -37,7 +37,7 @@ public class ClassType extends Type {
 
     @Override
     public String toString() {
-        return "class";
+        return this.name;
     }
 
 }

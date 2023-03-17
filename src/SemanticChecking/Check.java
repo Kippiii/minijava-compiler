@@ -81,7 +81,13 @@ public class Check {
             }
         }
 
-        // TODO Check typing and variable existence
+        // TODO Check if types are valid?
+
+        // Check typing and variable existence
+        TypeChecker tc = new TypeChecker(symbolTable);
+        tc.visit(program);
+        if (tc.errors.size() > 0)
+            throw new CompilerExceptionList(tc.errors);
 
         return program;
     }
