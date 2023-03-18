@@ -192,7 +192,7 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
             this.errors.add(new NameConflictError(fd.i.s, fd.i.lineNumber, fd.i.columnNumber));
         } else {
             String typeStr = this.getTypeString(fd.t);
-            debug(this.curClass.getName() + "." + this.curMethod.getName() + ": " + fd.i.s + "::" + typeStr);
+            debug(this.curClass.getName() + ": " + fd.i.s + "::" + typeStr);
             this.curClass.setVar(Symbol.symbol(fd.i.s), new BasicType(typeStr));
         }
         return null;

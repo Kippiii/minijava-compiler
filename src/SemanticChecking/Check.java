@@ -3,10 +3,7 @@ package SemanticChecking;
 import AbstractSyntax.BuildAbstract;
 import ErrorManagement.CompilerException;
 import ErrorManagement.CompilerExceptionList;
-import SemanticChecking.Symbol.BasicType;
-import SemanticChecking.Symbol.ClassType;
-import SemanticChecking.Symbol.MethodType;
-import SemanticChecking.Symbol.Symbol;
+import SemanticChecking.Symbol.*;
 import syntax.Program;
 
 import java.io.FileNotFoundException;
@@ -81,7 +78,8 @@ public class Check {
             }
         }
 
-        // TODO Check if types are valid?
+        // TODO Check inheritance?
+        // TODO Record case?
 
         // Check typing and variable existence
         TypeChecker tc = new TypeChecker(symbolTable);

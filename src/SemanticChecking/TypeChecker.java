@@ -28,7 +28,11 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
                 return t;
             }
         }
-        return null;
+        return this.symbolTable.get(s);
+    }
+
+    ClassType getClassOfObj(SemanticChecking.Symbol.Type t) {
+        return this.symbolTable.get(Symbol.symbol(t.toString()));
     }
 
     public TypeChecker(HashMap<Symbol, ClassType> symbolTable) {
@@ -57,6 +61,9 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
 
     public SemanticChecking.Symbol.Type visit(SimpleClassDecl cd) {
         this.curClass = this.symbolTable.get(Symbol.symbol(cd.i.s));
+        for (FieldDecl fd : cd.fields) {
+            fd.accept(this);
+        }
         for (MethodDecl md : cd.methods) {
             md.accept(this);
         }
@@ -73,6 +80,9 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         }
 
         this.curClass = this.symbolTable.get(Symbol.symbol(cd.i.s));
+        for (FieldDecl fd : cd.fields) {
+            fd.accept(this);
+        }
         for (MethodDecl md : cd.methods) {
             md.accept(this);
         }
@@ -82,6 +92,12 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
 
     public SemanticChecking.Symbol.Type visit(MethodDecl md) {
         this.curMethod = (MethodType) this.curClass.getVarType(Symbol.symbol(md.i.s));
+        for (FormalDecl fd : md.formals) {
+            fd.accept(this);
+        }
+        for (LocalDecl ld : md.locals) {
+            ld.accept(this);
+        }
         for (Statement s : md.sl) {
             s.accept(this);
         }
@@ -97,14 +113,17 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     public SemanticChecking.Symbol.Type visit(FieldDecl fd) {
+        fd.t.accept(this);
         return null;
     }
 
     public SemanticChecking.Symbol.Type visit(LocalDecl ld) {
+        ld.t.accept(this);
         return null;
     }
 
     public SemanticChecking.Symbol.Type visit(FormalDecl fd) {
+        fd.t.accept(this);
         return null;
     }
 
@@ -125,6 +144,9 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     public SemanticChecking.Symbol.Type visit(IdentifierType it) {
+        if (this.symbolTable.get(Symbol.symbol(it.nameOfType)) == null) {
+            this.errors.add(new InvalidClassError(it.nameOfType, it.lineNumber, it.columnNumber));
+        }
         return null;
     }
 
@@ -298,7 +320,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (!arrayType.toString().equals("int[]")) {
             this.errors.add(new TypeMismatchError("int[]", arrayType.toString(), al.expressionForArray.lineNumber, al.expressionForArray.columnNumber));
         }
-        if (indexType.toString().equals("int")) {
+        if (!indexType.toString().equals("int")) {
             this.errors.add(new TypeMismatchError("int", indexType.toString(), al.indexInArray.lineNumber, al.indexInArray.columnNumber));
         }
         return new BasicType("int");
@@ -317,21 +339,21 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
 
     public SemanticChecking.Symbol.Type visit(Call c) {
         // Check class type
-        SemanticChecking.Symbol.Type ct = c.e.accept(this);
-        if (ct == null) {
+        SemanticChecking.Symbol.Type ot = c.e.accept(this);
+        if (ot == null) {
             this.errors.add(new AccessingNonClassError("null", c.e.lineNumber, c.e.columnNumber));
             return null;
         }
-        if (!(ct instanceof ClassType)) {
-            this.errors.add(new AccessingNonClassError(ct.toString(), c.e.lineNumber, c.e.columnNumber));
+        ClassType classType = this.getClassOfObj(ot);
+        if (classType == null) {
+            this.errors.add(new AccessingNonClassError(ot.toString(), c.e.lineNumber, c.e.columnNumber));
             return null;
         }
-        ClassType classType = (ClassType) ct;
 
         // Check method type
         SemanticChecking.Symbol.Type mt = classType.getVarType(Symbol.symbol(c.i.s));
         if (mt == null || !(mt instanceof MethodType)) {
-            this.errors.add(new MethodNotFoundError(ct.toString(), c.i.s, c.i.lineNumber, c.i.columnNumber));
+            this.errors.add(new MethodNotFoundError(ot.toString(), c.i.s, c.i.lineNumber, c.i.columnNumber));
             return null;
         }
         MethodType methodType = (MethodType) mt;
@@ -379,7 +401,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     public SemanticChecking.Symbol.Type visit(This t) {
-        return this.curClass;
+        return new BasicType(this.curClass.getName());
     }
 
     public SemanticChecking.Symbol.Type visit(NewArray na) {
@@ -387,11 +409,11 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     public SemanticChecking.Symbol.Type visit(NewObject no) {
-        SemanticChecking.Symbol.Type t = this.symbolTable.get(Symbol.symbol(no.i.s));
-        if (t == null) {
+        if (this.symbolTable.get(Symbol.symbol(no.i.s)) == null) {
             this.errors.add(new InvalidClassError(no.i.s, no.i.lineNumber, no.i.columnNumber));
+            return null;
         }
-        return t;
+        return new BasicType(no.i.s);
     }
 
     public SemanticChecking.Symbol.Type visit(Not n) {

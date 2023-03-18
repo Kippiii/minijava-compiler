@@ -133,8 +133,8 @@ MainClass MainClass() :
 ClassDecl ClassDecl() :
 {Token t; Identifier name; Identifier extended; boolean isExtended; FieldDecl fieldDecl; List<FieldDecl> fieldDecls; MethodDecl methodDecl; List<MethodDecl> methodDecls;}
 {
-      { isExtended = false; } <CLASS> name=Identifier() ( <EXTENDS> extended=Identifier() { isExtended = true; } )? <CURLY_OPEN>
-        { fieldDecls = new ArrayList<FieldDecl>(); methodDecls = new ArrayList<MethodDecl>(); extended = null; }
+      { fieldDecls = new ArrayList<FieldDecl>(); methodDecls = new ArrayList<MethodDecl>(); extended = null; }
+        { isExtended = false; } <CLASS> name=Identifier() ( <EXTENDS> extended=Identifier() { isExtended = true; } )? <CURLY_OPEN>
         ( fieldDecl=FieldDecl() { fieldDecls.add(fieldDecl); } )* ( methodDecl=MethodDecl() { methodDecls.add(methodDecl); } )*
       <CURLY_CLOSE>
       { if (isExtended) return new ExtendingClassDecl(name, extended, fieldDecls, methodDecls); else return new SimpleClassDecl(name, fieldDecls, methodDecls); }
