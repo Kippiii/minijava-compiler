@@ -8,9 +8,7 @@ import syntax.Program;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class Check {
     static String filename = "Factorial.java";
@@ -78,7 +76,9 @@ public class Check {
             }
         }
 
-        // TODO Check inheritance?
+        // Check for cyclic inheritance issues
+        checkInheritance(symbolTable);
+
         // TODO Record case?
 
         // Check typing and variable existence
@@ -88,6 +88,29 @@ public class Check {
             throw new CompilerExceptionList(tc.errors);
 
         return program;
+    }
+
+    static void checkInheritance(Map<Symbol, ClassType> symbolTable) throws CompilerExceptionList {
+        for (Symbol s : symbolTable.keySet()) {
+            ClassType ct = findCycle(symbolTable, s, new HashSet<Symbol>());
+            if (ct != null) {
+                List<CompilerException> errors = new ArrayList<CompilerException>();
+                errors.add(new CyclicExtensionError(ct.getName(), ct.lineNumber, ct.colNumber));
+                throw new CompilerExceptionList(errors);
+            }
+        }
+    }
+
+    static ClassType findCycle(Map<Symbol, ClassType> symbolTable, Symbol cur, Set<Symbol> visited) {
+        if (cur == null) {
+            return null;
+        }
+        if (visited.contains(cur)) {
+            return symbolTable.get(cur);
+        }
+        visited.add(cur);
+        Symbol next = symbolTable.get(cur).getExtName();
+        return findCycle(symbolTable, next, visited);
     }
 
 }
