@@ -14,7 +14,9 @@ check.jar:
 	$(JAVAC) -classpath .:$(SUPPORT) Parsing/*.java
 	$(JAVAC) -classpath .:$(SUPPORT) AbstractSyntax/*.java
 	$(JAVAC) -classpath .:$(SUPPORT) SemanticChecking/*.java
-	jar cfm $@ Manifest */*.class
+	$(JAVAC) -classpath .:$(SUPPORT) SemanticChecking/Symbol/*.java
+	cp $(SUPPORT) ./support.jar || exit 0
+	jar cfm $@ Manifest */*.class */*/*.class
 
 clean:
 	rm -f check.jar

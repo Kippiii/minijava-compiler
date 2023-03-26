@@ -15,6 +15,7 @@ public class Utilities {
         LEXER,
         PARSER,
         ABSTRACT_BUILDER,
+        CHECKER,
     }
     public static Phase getPhase(String phaseStr) {
         if (phaseStr.equals("lexer"))
@@ -23,7 +24,9 @@ public class Utilities {
             return Phase.PARSER;
         if (phaseStr.equals("abstract"))
             return Phase.ABSTRACT_BUILDER;
-        return Phase.ABSTRACT_BUILDER;
+        if (phaseStr.equals("checker"))
+            return Phase.CHECKER;
+        return Phase.CHECKER;
     }
     public static String getDirectory(Phase phase) {
         switch(phase) {
@@ -33,14 +36,35 @@ public class Utilities {
                 return "Parsing";
             case ABSTRACT_BUILDER:
                 return "AbstractSyntax";
+            case CHECKER:
+                return "SemanticChecking";
         }
         return "";
     }
     public static List<String> getDirectoriesToAdd(Phase phase) {
         List<String> directories = new ArrayList<String>();
         switch(phase) {
+            case CHECKER:
+                directories.add("SemanticChecking/Symbol/BasicType.java");
+                directories.add("SemanticChecking/Symbol/ClassType.java");
+                directories.add("SemanticChecking/Symbol/MethodType.java");
+                directories.add("SemanticChecking/Symbol/Symbol.java");
+                directories.add("SemanticChecking/Symbol/Type.java");
+                directories.add("SemanticChecking/Check.java");
+                directories.add("SemanticChecking/NameConflictError.java");
+                directories.add("SemanticChecking/SymbolTableFactory.java");
+                directories.add("SemanticChecking/AccessingNonClassError.java");
+                directories.add("SemanticChecking/InvalidClassError.java");
+                directories.add("SemanticChecking/InvalidNumArgsError.java");
+                directories.add("SemanticChecking/MethodNotFoundError.java");
+                directories.add("SemanticChecking/TypeChecker.java");
+                directories.add("SemanticChecking/TypeMismatchError.java");
+                directories.add("SemanticChecking/UndefinedSymbolError.java");
+                directories.add("SemanticChecking/CyclicExtensionError.java");
             case ABSTRACT_BUILDER:
-                directories.add("AbstractSyntax/BuildAbstract.java")
+                directories.add("AbstractSyntax/BuildAbstract.java");
+                directories.add("AbstractSyntax/TreePrinter.java");
+                directories.add("Manifest");
             case PARSER:
                 directories.add("Parsing/Parse.java");
                 directories.add("Parsing/MyParseException.java");
@@ -78,6 +102,10 @@ public class Utilities {
                 return "phase02.jar";
             case PARSER:
                 return "phase03.jar";
+            case ABSTRACT_BUILDER:
+                return "phase04.jar";
+            case CHECKER:
+                return "phase05.jar";
         }
         return "invalid.jar";
     }

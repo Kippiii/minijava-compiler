@@ -1,2 +1,2 @@
-Main-Class: AbstractSyntax.BuildAbstract
-Class-Path: https://cs.fit.edu/~ryan/cse4251/support.jar
+Main-Class: SemanticChecking.Check
+Class-Path: ./support.jar

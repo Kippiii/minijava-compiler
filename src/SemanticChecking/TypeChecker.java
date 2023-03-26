@@ -22,13 +22,48 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
                 return t;
             }
         }
-        if (this.curClass != null) {
-            SemanticChecking.Symbol.Type t = this.curClass.getVarType(s);
+        ClassType ct = this.curClass;
+        while (ct != null) {
+            SemanticChecking.Symbol.Type t = ct.getVarType(s);
             if (t != null) {
                 return t;
             }
+
+            if (ct.getExtName() != null) {
+                ct = symbolTable.get(ct.getExtName());
+            } else {
+                ct = null;
+            }
         }
         return this.symbolTable.get(s);
+    }
+
+    boolean checkTypeEquals(SemanticChecking.Symbol.Type expected, SemanticChecking.Symbol.Type received) {
+        if (expected == null || received == null) {
+            return false;
+        }
+        if (expected.toString().equals(received.toString())) {
+            return true;
+        }
+        ClassType ct = this.symbolTable.get(Symbol.symbol(received.toString()));
+        if (ct != null) {
+            if (ct.getExtName() == null) {
+                return false;
+            }
+            return checkTypeEquals(expected, new BasicType(ct.getExtName().toString()));
+        }
+        return false;
+    }
+
+    boolean isInherited(Symbol field, Symbol parentName) {
+        if (field == null || parentName == null) {
+            return false;
+        }
+        ClassType ct = this.symbolTable.get(parentName);
+        if (ct.getVarType(field) != null) {
+            return true;
+        }
+        return isInherited(field, ct.getExtName());
     }
 
     ClassType getClassOfObj(SemanticChecking.Symbol.Type t) {
@@ -73,7 +108,6 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
 
     public SemanticChecking.Symbol.Type visit(ExtendingClassDecl cd) {
         // Check extension type
-        // TODO cyclic extending?
         SemanticChecking.Symbol.Type extType = this.symbolTable.get(Symbol.symbol(cd.j.s));
         if (extType == null) {
             this.errors.add(new InvalidClassError(cd.j.s, cd.j.lineNumber, cd.j.columnNumber));
@@ -91,6 +125,10 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     public SemanticChecking.Symbol.Type visit(MethodDecl md) {
+        if (isInherited(Symbol.symbol(md.i.s), this.curClass.getExtName())) {
+            this.errors.add(new NameConflictError(md.i.s, md.i.lineNumber, md.i.columnNumber));
+        }
+
         this.curMethod = (MethodType) this.curClass.getVarType(Symbol.symbol(md.i.s));
         for (FormalDecl fd : md.formals) {
             fd.accept(this);
@@ -105,7 +143,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (retType == null) {
             return null;
         }
-        if (!retType.toString().equals(this.curMethod.getRetType().toString())) {
+        if (!checkTypeEquals(this.curMethod.getRetType(), retType)) {
             this.errors.add(new TypeMismatchError(retType.toString(), this.curMethod.getRetType().toString(), md.e.lineNumber, md.e.columnNumber));
         }
         this.curMethod = null;
@@ -114,6 +152,9 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
 
     public SemanticChecking.Symbol.Type visit(FieldDecl fd) {
         fd.t.accept(this);
+        if (isInherited(Symbol.symbol(fd.i.s), this.curClass.getExtName())) {
+            this.errors.add(new NameConflictError(fd.i.s, fd.i.lineNumber, fd.i.columnNumber));
+        }
         return null;
     }
 
@@ -162,7 +203,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (checkType == null) {
             return null;
         }
-        if (!checkType.toString().equals("boolean")) {
+        if (!this.checkTypeEquals(new BasicType("boolean"), checkType)) {
             this.errors.add(new TypeMismatchError("boolean", checkType.toString(), f.e.lineNumber, f.e.columnNumber));
         }
         f.s1.accept(this);
@@ -175,7 +216,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (checkType == null) {
             return null;
         }
-        if (!checkType.toString().equals("boolean")) {
+        if (!this.checkTypeEquals(new BasicType("boolean"), checkType)) {
             this.errors.add(new TypeMismatchError("boolean", checkType.toString(), w.e.lineNumber, w.e.columnNumber));
         }
         w.s.accept(this);
@@ -188,7 +229,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (printType == null) {
             return null;
         }
-        if (!printType.toString().equals("int")) {
+        if (!this.checkTypeEquals(new BasicType("int"), printType)) {
             this.errors.add(new TypeMismatchError("int", printType.toString(), p.e.lineNumber, p.e.columnNumber));
         }
         return null;
@@ -200,7 +241,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (t1 == null || t2 == null) {
             return null;
         }
-        if (!t1.toString().equals(t2.toString())) {
+        if (!this.checkTypeEquals(t1, t2)) {
             this.errors.add(new TypeMismatchError(t1.toString(), t2.toString(), a.e.lineNumber, a.e.columnNumber));
         }
         return null;
@@ -212,7 +253,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (arrType == null) {
             return null;
         }
-        if (!arrType.toString().equals("int[]")) {
+        if (!this.checkTypeEquals(new BasicType("int[]"), arrType)) {
             this.errors.add(new TypeMismatchError("int[]", arrType.toString(), aa.nameOfArray.lineNumber, aa.nameOfArray.columnNumber));
         }
 
@@ -221,7 +262,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (indexType == null) {
             return null;
         }
-        if (!indexType.toString().equals("int")) {
+        if (!this.checkTypeEquals(new BasicType("int"), indexType)) {
             this.errors.add(new TypeMismatchError("int", indexType.toString(), aa.indexInArray.lineNumber, aa.indexInArray.columnNumber));
         }
 
@@ -230,7 +271,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (valueType == null) {
             return null;
         }
-        if (!valueType.toString().equals("int")) {
+        if (!this.checkTypeEquals(new BasicType("int"), valueType)) {
             this.errors.add(new TypeMismatchError("int", valueType.toString(), aa.e.lineNumber, aa.e.columnNumber));
         }
         return null;
@@ -242,10 +283,10 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (t1 == null || t2 == null) {
             return null;
         }
-        if (!t1.toString().equals("boolean")) {
+        if (!this.checkTypeEquals(new BasicType("boolean"), t1)) {
             this.errors.add(new TypeMismatchError("boolean", t1.toString(), a.e1.lineNumber, a.e1.columnNumber));
         }
-        if (!t2.toString().equals("boolean")) {
+        if (!this.checkTypeEquals(new BasicType("boolean"), t2)) {
             this.errors.add(new TypeMismatchError("boolean", t2.toString(), a.e2.lineNumber, a.e2.columnNumber));
         }
         return new BasicType("boolean");
@@ -257,10 +298,10 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (t1 == null || t2 == null) {
             return null;
         }
-        if (!t1.toString().equals("int")) {
+        if (!this.checkTypeEquals(new BasicType("int"), t1)) {
             this.errors.add(new TypeMismatchError("int", t1.toString(), lt.e1.lineNumber, lt.e1.columnNumber));
         }
-        if (!t2.toString().equals("int")) {
+        if (!this.checkTypeEquals(new BasicType("int"), t2)) {
             this.errors.add(new TypeMismatchError("int", t2.toString(), lt.e2.lineNumber, lt.e2.columnNumber));
         }
         return new BasicType("boolean");
@@ -272,10 +313,10 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (t1 == null || t2 == null) {
             return null;
         }
-        if (!t1.toString().equals("int")) {
+        if (!this.checkTypeEquals(new BasicType("int"), t1)) {
             this.errors.add(new TypeMismatchError("int", t1.toString(), p.e1.lineNumber, p.e1.columnNumber));
         }
-        if (!t2.toString().equals("int")) {
+        if (!this.checkTypeEquals(new BasicType("int"), t2)) {
             this.errors.add(new TypeMismatchError("int", t2.toString(), p.e2.lineNumber, p.e2.columnNumber));
         }
         return new BasicType("int");
@@ -287,10 +328,10 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (t1 == null || t2 == null) {
             return null;
         }
-        if (!t1.toString().equals("int")) {
+        if (!this.checkTypeEquals(new BasicType("int"), t1)) {
             this.errors.add(new TypeMismatchError("int", t1.toString(), m.e1.lineNumber, m.e1.columnNumber));
         }
-        if (!t2.toString().equals("int")) {
+        if (!this.checkTypeEquals(new BasicType("int"), t2)) {
             this.errors.add(new TypeMismatchError("int", t2.toString(), m.e2.lineNumber, m.e2.columnNumber));
         }
         return new BasicType("int");
@@ -302,10 +343,10 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (t1 == null || t2 == null) {
             return null;
         }
-        if (!t1.toString().equals("int")) {
+        if (!this.checkTypeEquals(new BasicType("int"), t1)) {
             this.errors.add(new TypeMismatchError("int", t1.toString(), t.e1.lineNumber, t.e1.columnNumber));
         }
-        if (!t2.toString().equals("int")) {
+        if (!this.checkTypeEquals(new BasicType("int"), t2)) {
             this.errors.add(new TypeMismatchError("int", t2.toString(), t.e2.lineNumber, t.e2.columnNumber));
         }
         return new BasicType("int");
@@ -317,10 +358,10 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (arrayType == null || indexType == null) {
             return null;
         }
-        if (!arrayType.toString().equals("int[]")) {
+        if (!this.checkTypeEquals(new BasicType("int[]"), arrayType)) {
             this.errors.add(new TypeMismatchError("int[]", arrayType.toString(), al.expressionForArray.lineNumber, al.expressionForArray.columnNumber));
         }
-        if (!indexType.toString().equals("int")) {
+        if (!this.checkTypeEquals(new BasicType("int"), indexType)) {
             this.errors.add(new TypeMismatchError("int", indexType.toString(), al.indexInArray.lineNumber, al.indexInArray.columnNumber));
         }
         return new BasicType("int");
@@ -331,7 +372,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (arrayType == null) {
             return null;
         }
-        if (!arrayType.toString().equals("int[]")) {
+        if (!this.checkTypeEquals(new BasicType("int[]"), arrayType)) {
             this.errors.add(new TypeMismatchError("int[]", arrayType.toString(), al.expressionForArray.lineNumber, al.expressionForArray.columnNumber));
         }
         return new BasicType("int");
@@ -351,7 +392,13 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         }
 
         // Check method type
-        SemanticChecking.Symbol.Type mt = classType.getVarType(Symbol.symbol(c.i.s));
+        MethodType curMethod = this.curMethod;
+        ClassType curClass = this.curClass;
+        this.curMethod = null;
+        this.curClass = classType;
+        SemanticChecking.Symbol.Type mt = this.getTypeOfSymbol(Symbol.symbol(c.i.s));
+        this.curClass = curClass;
+        this.curMethod = curMethod;
         if (mt == null || !(mt instanceof MethodType)) {
             this.errors.add(new MethodNotFoundError(ot.toString(), c.i.s, c.i.lineNumber, c.i.columnNumber));
             return null;
@@ -371,7 +418,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
             if (t1 == null || t2 == null) {
                 return null;
             }
-            if (!t1.toString().equals(t2.toString())) {
+            if (!this.checkTypeEquals(t2, t1)) {
                 this.errors.add(new TypeMismatchError(t2.toString(), t1.toString(), c.el.get(i).lineNumber, c.el.get(i).columnNumber));
             }
         }
@@ -421,7 +468,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (t == null) {
             return null;
         }
-        if (!t.toString().equals("boolean")) {
+        if (!this.checkTypeEquals(new BasicType("boolean"), t)) {
             this.errors.add(new TypeMismatchError("boolean", t.toString(), n.e.lineNumber, n.e.columnNumber));
         }
         return new BasicType("boolean");

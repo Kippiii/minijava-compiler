@@ -89,7 +89,7 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
 
     public Void visit(MainClass mc) {
         this.debug("Exploring class " + mc.nameOfMainClass.s);
-        this.curClass = new ClassType(mc.nameOfMainClass.s);
+        this.curClass = new ClassType(mc.nameOfMainClass.s, mc.nameOfMainClass.lineNumber, mc.nameOfMainClass.columnNumber);
 
         // Exploring main method
         this.debug("Exploring method " + mc.nameOfMainClass.s + ".main");
@@ -122,7 +122,7 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
 
     public Void visit(SimpleClassDecl cd) {
         this.debug("Exploring class " + cd.i.s);
-        this.curClass = new ClassType(cd.i.s);
+        this.curClass = new ClassType(cd.i.s, cd.i.lineNumber, cd.i.columnNumber);
 
         for (FieldDecl fd : cd.fields) {
             fd.accept(this);
@@ -142,7 +142,7 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
 
     public Void visit(ExtendingClassDecl cd) {
         this.debug("Exploring class " + cd.i.s);
-        this.curClass = new ClassType(cd.i.s);
+        this.curClass = new ClassType(cd.i.s, cd.i.lineNumber, cd.i.columnNumber);
 
         this.curClass.setExtName(Symbol.symbol(cd.j.s));
         for (FieldDecl fd : cd.fields) {

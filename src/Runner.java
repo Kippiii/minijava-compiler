@@ -12,7 +12,7 @@ public class Runner {
             String dir = Utilities.getDirectory(phase);
             Utilities.copyFile(dir + "/Makefile", "Makefile");
             Utilities.copyFile(dir + "/compile", "compile");
-            if (phase == Utilities.Phase.ABSTRACT_BUILDER)
+            if (phase == Utilities.Phase.ABSTRACT_BUILDER || phase == Utilities.Phase.CHECKER)
                 Utilities.copyFile(dir + "/Manifest", "Manifest");
 
             // Run Makefile and compile script

@@ -17,6 +17,47 @@ public class MiniJavaParser {
     public static void init_errors() {
         errors = new ArrayList<ParseException>();
     }
+    public static ClassDecl makeRecord(Identifier name, List<Type> types, List<Identifier> fieldNames) {
+        // Create fields
+        List<FieldDecl> fields = new ArrayList<FieldDecl>();
+        for (int i = 0; i < types.size(); i++) {
+            String fieldName = "$" + fieldNames.get(i).s;
+            fields.add(new FieldDecl(types.get(i), new Identifier(fieldNames.get(i).lineNumber, fieldNames.get(i).columnNumber, fieldName)));
+        }
+
+        // Create getter methods
+        List<MethodDecl> methods = new ArrayList<MethodDecl>();
+        for (int i = 0; i < types.size(); i++) {
+            Type retType = types.get(i);
+            Identifier curName = fieldNames.get(i);
+            List<FormalDecl> formals = new ArrayList<FormalDecl>();
+            List<LocalDecl> locals = new ArrayList<LocalDecl>();
+            List<Statement> statements = new ArrayList<Statement>();
+            Expression ret = new IdentifierExp(curName.lineNumber, name.columnNumber, "$" + curName.s);
+            methods.add(new MethodDecl(retType, curName, formals, locals, statements, ret));
+        }
+
+        // Create init method
+        Type initRetType = new IdentifierType(0, 0, name.s);
+        Identifier initName = new Identifier(name.lineNumber, name.columnNumber, "$$init");
+        List<FormalDecl> initFormals = new ArrayList<FormalDecl>();
+        for (int i = 0; i < types.size(); i++) {
+            initFormals.add(new FormalDecl(types.get(i), fieldNames.get(i)));
+        }
+        List<LocalDecl> initLocals = new ArrayList<LocalDecl>();
+        List<Statement> setters = new ArrayList<Statement>();
+        for (int i = 0; i < types.size(); i++) {
+            Identifier fieldName = fieldNames.get(i);
+            Identifier id = new Identifier(fieldName.lineNumber, fieldName.columnNumber, "$" + fieldName.s);
+            IdentifierExp assigned = new IdentifierExp(fieldName.lineNumber, fieldName.columnNumber, fieldName.s);
+            setters.add(new Assign(id, assigned));
+        }
+        Expression initRet = new This();
+        methods.add(new MethodDecl(initRetType, initName, initFormals, initLocals, setters, initRet));
+
+        // Create and return class
+        return new SimpleClassDecl(name, fields, methods);
+    }
 }
 
 PARSER_END(MiniJavaParser)
@@ -131,14 +172,22 @@ MainClass MainClass() :
 }
 
 ClassDecl ClassDecl() :
-{Token t; Identifier name; Identifier extended; boolean isExtended; FieldDecl fieldDecl; List<FieldDecl> fieldDecls; MethodDecl methodDecl; List<MethodDecl> methodDecls;}
+{Token t; Identifier name; Identifier extended; boolean isExtended; FieldDecl fieldDecl; List<FieldDecl> fieldDecls; MethodDecl methodDecl; List<MethodDecl> methodDecls; ClassDecl record;}
 {
       { fieldDecls = new ArrayList<FieldDecl>(); methodDecls = new ArrayList<MethodDecl>(); extended = null; }
         { isExtended = false; } <CLASS> name=Identifier() ( <EXTENDS> extended=Identifier() { isExtended = true; } )? <CURLY_OPEN>
         ( fieldDecl=FieldDecl() { fieldDecls.add(fieldDecl); } )* ( methodDecl=MethodDecl() { methodDecls.add(methodDecl); } )*
       <CURLY_CLOSE>
       { if (isExtended) return new ExtendingClassDecl(name, extended, fieldDecls, methodDecls); else return new SimpleClassDecl(name, fieldDecls, methodDecls); }
-    | <IDENTIFIER> <IDENTIFIER> <PAREN_OPEN> ( Type() <IDENTIFIER> ( <COMMA> Type() <IDENTIFIER> )* )? <PAREN_CLOSE> <CURLY_OPEN> <CURLY_CLOSE> // TODO record case
+    | record=Record() {return record;}
+}
+
+ClassDecl Record() :
+{Identifier recordWord, name; Type type; List<Type> types; Identifier fieldName; List<Identifier> fieldNames;}
+{
+    { types = new ArrayList<Type>(); fieldNames = new ArrayList<Identifier>(); }
+    recordWord=Identifier() name=Identifier() <PAREN_OPEN> ( type=Type() fieldName=Identifier() { types.add(type); fieldNames.add(fieldName); }  ( <COMMA> type=Type() fieldName=Identifier() { types.add(type); fieldNames.add(fieldName); } )* )? <PAREN_CLOSE> <CURLY_OPEN> <CURLY_CLOSE>
+    { return makeRecord(name, types, fieldNames); } // TODO What if recordWord is wrong...
 }
 
 FieldDecl FieldDecl() :
@@ -195,6 +244,7 @@ Statement Statement() :
         do {
             t = getNextToken();
         } while (t.kind != SEMI_COLON);
+        return null;
     }
 }
 
@@ -320,7 +370,7 @@ Expression ExpressionBaseCase() :
     | id=<IDENTIFIER> { return new IdentifierExp(id.beginLine, id.beginColumn, id.image); }
     | t=<THIS> { return new This(t.beginLine, t.beginColumn); }
     | t=<NEW> <INT> <SQUARE_OPEN> e=Expression() <SQUARE_CLOSE> { return new NewArray(t.beginLine, t.beginColumn, e); }
-    | t=<NEW> identifier=Identifier() <PAREN_OPEN> <PAREN_CLOSE> { return new NewObject(t.beginLine, t.beginColumn, identifier); }
+    | t=<NEW> identifier=Identifier() <PAREN_OPEN> e=InsideNew(identifier) <PAREN_CLOSE> { if (e == null) return new NewObject(t.beginLine, t.beginColumn, identifier); else return e; }
 }
 
 Expression IntegerLiteral() :
@@ -333,4 +383,17 @@ Identifier Identifier() :
 {Token id;}
 {
     id=<IDENTIFIER> { return new Identifier(id.beginLine, id.beginColumn, id.image); }
+}
+
+Expression InsideNew(Identifier cls) :
+{Expression exp; List<Expression> fields;}
+{
+    (
+        { fields = new ArrayList<Expression>(); }
+        exp=Expression() { fields.add(exp); } ( <COMMA> exp=Expression() { fields.add(exp); } )*
+        {
+            return new Call(cls.lineNumber, cls.columnNumber, new NewObject(cls.lineNumber, cls.columnNumber, cls), new Identifier(0, 0, "$$init"), fields);
+        }
+    )?
+    { return null; }
 }
