@@ -16,6 +16,7 @@ public class Utilities {
         PARSER,
         ABSTRACT_BUILDER,
         CHECKER,
+        TRANSLATOR,
     }
     public static Phase getPhase(String phaseStr) {
         if (phaseStr.equals("lexer"))
@@ -26,7 +27,9 @@ public class Utilities {
             return Phase.ABSTRACT_BUILDER;
         if (phaseStr.equals("checker"))
             return Phase.CHECKER;
-        return Phase.CHECKER;
+        if (phaseStr.equals("translate"))
+            return Phase.TRANSLATOR;
+        return Phase.TRANSLATOR;
     }
     public static String getDirectory(Phase phase) {
         switch(phase) {
@@ -38,12 +41,15 @@ public class Utilities {
                 return "AbstractSyntax";
             case CHECKER:
                 return "SemanticChecking";
+            case TRANSLATOR:
+                return "IRTranslation"
         }
         return "";
     }
     public static List<String> getDirectoriesToAdd(Phase phase) {
         List<String> directories = new ArrayList<String>();
         switch(phase) {
+            case TRANSLATOR:
             case CHECKER:
                 directories.add("SemanticChecking/Symbol/BasicType.java");
                 directories.add("SemanticChecking/Symbol/ClassType.java");
@@ -106,6 +112,8 @@ public class Utilities {
                 return "phase04.jar";
             case CHECKER:
                 return "phase05.jar";
+            case TRANSLATOR:
+                return "phase07.jar";
         }
         return "invalid.jar";
     }
