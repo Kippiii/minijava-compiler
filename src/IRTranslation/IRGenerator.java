@@ -1,11 +1,23 @@
 package IRTranslation;
 
+import SemanticChecking.Symbol.Symbol;
 import syntax.*;
 import tree.*;
 
 public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     Symbol curClassName;
     Symbol curMethodName;
+
+    private genVarLValue(Symbol variable) {
+        // TODO
+        // If variable is variable
+            // Return register
+        // If variable is local
+            // Return stack offset
+        // If variable is class
+            // Return access of this
+        // Error
+    }
 
     public IRGenerator() {
         this.curClassName = null;
@@ -251,7 +263,10 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     public Stm visit(IdentifierExp ie) {
-        // TODO Hard one :(
+        // TODO
+        // Get identifier l-value
+
+        // Return computed r-value
     }
 
     public Stm visit(This t) {
@@ -260,11 +275,23 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     public Stm visit(NewArray na) {
-        // TODO Hard one :(
+        // TODO
+        // Get expression for size of array (including length)
+
+        // Set up call for allocating size
+
+        // Initialize first element to be length
+
+        // Return
     }
 
     public Stm visit(NewObject no) {
-        // TODO Hard one :(
+        // TODO
+        // Calculate size of object
+
+        // Set up call for allocating size
+
+        // Return
     }
 
     public Stm visit(Not n) {
@@ -277,7 +304,8 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     public Stm visit(Identifier id) {
-        // TODO Hard one :(
+        // TODO
+        // Return l-value
     }
 
 }
