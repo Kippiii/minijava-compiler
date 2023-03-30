@@ -19,6 +19,19 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
         // Error
     }
 
+    private Exp toExp(Stm s) {
+        assert(s instanceof EVAL);
+        return ((EVAL) s).exp;
+    }
+
+    private Stm toStm(Exp e) {
+        return new EVAL(e);
+    }
+
+    private Exp getArrayOffsetLValue(Exp array, Exp offset) {
+        // TODO
+    }
+
     public IRGenerator() {
         this.curClassName = null;
         this.curMethodName = null;
@@ -103,10 +116,17 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     public Stm visit(final Block b) {
-        // TODO
         // Create sequence of each child statement
+        if (b.sl.size() == 0) {
+            // TODO
+        }
+        Stm bTree = b.sl.get(b.sl.size() - 1).accept(this);
+        for (int i = b.sl.size() - 2; i >= 0; i--) {
+            bTree = new SEQ(b.sl.get(i).accept(this), bTree);
+        }
 
         // Return
+        return bTree;
     }
 
     public Stm visit(final If f) {
@@ -147,91 +167,124 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     public Stm visit(final Assign a) {
-        // TODO
         // Determine expression for l-value
+        Exp lvalue = this.toExp(a.i.accept(this));
 
         // Determine expression for r-value
+        Exp rvalue = this.toExp(a.e.accepth(this));
 
         // Move r-value to l-value
+        Stm move = new MOVE(lvalue, rvalue);
 
         // Return
+        return move;
     }
 
     public Stm visit(ArrayAssign aa) {
-        // TODO
         // Determine memory address of array
+        Exp array = aa.nameOfArray.accept(this);
 
         // Get the l-value using offset
+        Exp lvalue = this.getArrayOffsetLValue(array, aa.indexInArray);
 
         // Determine expression for r-value
+        Exp rvalue = aa.e.accept(this);
 
         // Move r-value to l-value
+        Stm move = new MOVE(lvalue, rvalue);
 
         // Return
+        return move;
     }
 
     public Stm visit(final And a) {
-        // TODO
         // Determine left-side expression
+        Exp left = this.toExp(a.e1.accept(this));
 
         // Determine right-side expression
+        Exp right = this.toExp(a.e2.accept(this));
 
         // Apply binop and to both sides
+        Stm result = new BINOP(BINOP.AND, left, right);
 
         // Return
+        return result;
     }
 
     public Stm visit(final LessThan lt) {
-        // TODO How less than?
+        // TODO
+        // Select temp variable for result
+
+        // Create true case
+
+        // Create false case
+
+        // Create a CJUMP
+
+        // Create expression for temp
+
+        // Return CEXP with statement and expression
     }
 
     public Stm visit(final Plus p) {
-        // TODO
         // Determine left-side expression
+        Exp left = this.toExp(p.e1.accept(this));
 
         // Determine right-side expression
+        Exp right = this.toExp(p.e2.accept(this));
 
         // Apply binop on both sides
+        Stm result = new BINOP(BINOP.PLUS, left, right);
 
         // Return
+        return result;
     }
 
     public Stm visit(final Minus m) {
-        // TODO
         // Determine left-side expression
+        Exp left = this.toExp(m.e1.accept(this));
 
         // Determine right-side expression
+        Exp right = this.toExp(m.e2.accept(this));
 
         // Apply binop on both sides
+        Stm result = new BINOP(BINOP.MINUS, left, right);
 
         // Return
+        return result;
     }
 
     public Stm visit(final Times t) {
-        // TODO
         // Determine left-side expression
+        Exp left = this.toExp(t.e1.accept(this));
 
         // Determine right-side expression
+        Exp right = this.toExp(t.e2.accept(this));
 
         // Apply binop on both sides
+        Stm result = new BINOP(BINOP.MUL, left, right);
 
         // Return
+        return result;
     }
 
     public Stm visit(final ArrayLookup al) {
-        // TODO
         // Determine pointer to array
+        Exp array = this.toExp(al.expressionForArray.accept(this));
 
         // Add offset to array pointer
+        Exp lvalue = this.getArrayOffsetLValue(array, al.indexInArray.accept(this));
 
         // Return value at pointer
+        return new MEM(lvalue);
     }
 
     public Stm visit(final ArrayLength al) {
-        // TODO
         // Determine pointer to array
+        Exp array = this.genVarLValue(Symbol.symbol(al.expressionForArray));
 
         // Return value at pointer
+        return new MEM(array);
     }
 
     public Stm visit(Call c) {
@@ -248,30 +301,28 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     public Stm visit(True t) {
-        // TODO
-        // Return constant 1
+        return this.toStm(new CONST(1));
     }
 
     public Stm visit(False f) {
-        // TODO
-        // Return constant 0
+        return this.toStm(new CONST(0));
     }
 
     public Stm visit(IntegerLiteral il) {
-        // TODO
-        // Return integer literal
+        return this.toStm(new CONST(il.i));
     }
 
     public Stm visit(IdentifierExp ie) {
-        // TODO
         // Get identifier l-value
+        Exp lvalue = this.genVarLValue(Symbol.symbol(ie.s));
 
         // Return computed r-value
+        return new MEM(lvalue);
     }
 
     public Stm visit(This t) {
-        // TODO
         // Return first parameter
+        return new TEMP("%i0");
     }
 
     public Stm visit(NewArray na) {
@@ -295,17 +346,19 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     public Stm visit(Not n) {
-        // TODO
         // Evaluate expression
+        Exp e = n.e.accept(this);
 
         // Set up binop (xor) with 1
+        Stm call = new BINOP(BINOP.XOR, e, new CONST(1));
 
         // Return
+        return call;
     }
 
     public Stm visit(Identifier id) {
-        // TODO
         // Return l-value
+        return this.genVarLValue(Symbol.symbol(id.s));
     }
 
 }
