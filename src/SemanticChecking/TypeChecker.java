@@ -390,6 +390,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
             this.errors.add(new AccessingNonClassError(ot.toString(), c.e.lineNumber, c.e.columnNumber));
             return null;
         }
+        c.setReceiverClassName(classType.getName());
 
         // Check method type
         MethodType curMethod = this.curMethod;

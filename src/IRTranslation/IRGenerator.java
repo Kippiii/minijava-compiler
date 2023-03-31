@@ -1,5 +1,7 @@
 package IRTranslation;
 
+import SemanticChecking.Symbol.ClassType;
+import SemanticChecking.Symbol.MethodType;
 import SemanticChecking.Symbol.Symbol;
 import syntax.*;
 import tree.*;
@@ -7,6 +9,7 @@ import tree.*;
 import javax.naming.Name;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     static final String printFunction = "print_int";
@@ -14,15 +17,24 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     Symbol curClassName;
     Symbol curMethodName;
     int curId;
+    Map<Symbol, ClassType> symbolTable;
 
     private Exp genVarLValue(Symbol variable) {
         // TODO
-        // If variable is variable
+        ClassType ct = this.symbolTable.get(variable);
+        MethodType mt = (MethodType) ct.getVarType(variable);
+        // If variable is arg
+        if (mt.getArgType(variable) != null) {
             // Return register
+        }
         // If variable is local
+        if (mt.getVarType(variable) != null) {
             // Return stack offset
+        }
         // If variable is class
+        if (ct.getVarType(variable) != null) {
             // Return access of this
+        }
         // Error
     }
 
@@ -48,10 +60,11 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
         return new CALL(new NameOfLabel(allocFunction), size);
     }
 
-    public IRGenerator() {
+    public IRGenerator(Map<Symbol, ClassType> symbolTable) {
         this.curClassName = null;
         this.curMethodName = null;
         this.curId = 0;
+        this.symbolTable = symbolTable;
     }
 
     public Stm visit(Program p) {
@@ -63,14 +76,15 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     public Stm visit(MainClass mc) {
-        // TODO save class name
-        // TODO special class decl
+        // save class name
+        this.curClassName = Symbol.symbol(mc.nameOfMainClass.s);
         mc.body.accept(this);
         return null;
     }
 
     public Stm visit(SimpleClassDecl cd) {
-        // TODO save class name
+        // save class name
+        this.curClassName = Symbol.symbol(cd.i.s);
         for (MethodDecl md : cd.methods) {
             md.accept(this);
         }
@@ -78,7 +92,8 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     public Stm visit(ExtendingClassDecl cd) {
-        // TODO save class name
+        // save class name
+        this.curClassName = Symbol.symbol(cd.i.s);
         for (MethodDecl md : cd.methods) {
             md.accept(this);
         }
@@ -335,8 +350,11 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     public Stm visit(Call c) {
-        // TODO Find label of function
-        NameOfLabel functionLabel = ?
+        // Find label of function
+        if (c.getReceiverClassName() == null) {
+            // TODO Error
+        }
+        NameOfLabel functionLabel = new NameOfLabel(c.getReceiverClassName(), c.i.s);
         Exp f = new NAME(functionLabel);
 
         // Evaluate called-on object
@@ -403,8 +421,8 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     public Stm visit(NewObject no) {
-        // TODO Calculate size of object
-        int objSize = ?
+        // Calculate size of object
+        int objSize = this.symbolTable.get(Symbol.symbol(no.i.s)).getObjectSize(this.symbolTable);
 
         // Set up call for allocating size
         Exp allocation = this.genAllocation(new CONST(objSize));
