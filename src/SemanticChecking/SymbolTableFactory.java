@@ -1,11 +1,9 @@
 package SemanticChecking;
 
 import ErrorManagement.CompilerException;
-import SemanticChecking.Symbol.BasicType;
-import SemanticChecking.Symbol.ClassType;
-import SemanticChecking.Symbol.MethodType;
-import SemanticChecking.Symbol.Symbol;
+import SemanticChecking.Symbol.*;
 import syntax.*;
+import syntax.Type;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -14,7 +12,7 @@ import java.util.List;
 
 public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
     private final boolean debug;
-    HashMap<Symbol, ClassType> classes;
+    NameSpace classes;
     ClassType curClass;
     MethodType curMethod;
     List<CompilerException> errors;
@@ -29,15 +27,19 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
         SemanticChecking.Symbol.Type arg = this.curMethod.getArgType(s);
         if (arg != null)
             return false;
-        return this.curMethod.getVarType(s) == null;
+        return this.curMethod.getLocalType(s) == null;
     }
 
-    private boolean checkClassVar(Symbol s) {
-        return this.curClass.getVarType(s) == null;
+    private boolean checkClassField(Symbol s) {
+        return this.curClass.getFieldType(s) == null;
+    }
+
+    private boolean checkClassMethod(Symbol s) {
+        return this.curClass.getMethodType(s) == null;
     }
 
     private boolean checkClassName(Symbol s) {
-        ClassType ct = this.classes.get(s);
+        ClassType ct = (ClassType) this.classes.getType(s);
         return ct == null;
     }
 
@@ -61,7 +63,7 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
     }
 
     public SymbolTableFactory() {
-        this.classes = new HashMap<Symbol, ClassType>();
+        this.classes = new NameSpace();
         this.curClass = null;
         this.curMethod = null;
         this.debug = false;
@@ -69,7 +71,7 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
     }
 
     public SymbolTableFactory(boolean debug) {
-        this.classes = new HashMap<Symbol, ClassType>();
+        this.classes = new NameSpace();
         this.curClass = null;
         this.curMethod = null;
         this.debug = debug;
@@ -104,17 +106,17 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
         mc.body.accept(this);
 
         // Adding main method
-        if (!this.checkClassVar(Symbol.symbol("main"))) {
+        if (!this.checkClassMethod(Symbol.symbol("main"))) {
             this.errors.add(new NameConflictError("main", mc.lineNumber, mc.columnNumber));
         } else {
-            this.curClass.setVar(Symbol.symbol("main"), this.curMethod);
+            this.curClass.setMethod(Symbol.symbol("main"), this.curMethod);
         }
         this.curMethod = null;
 
         if (!this.checkClassName(Symbol.symbol(mc.nameOfMainClass.s))) {
             this.errors.add(new NameConflictError(mc.nameOfMainClass.s, mc.nameOfMainClass.lineNumber, mc.nameOfMainClass.columnNumber));
         } else {
-            this.classes.put(Symbol.symbol(mc.nameOfMainClass.s), this.curClass);
+            this.classes.add(Symbol.symbol(mc.nameOfMainClass.s), this.curClass);
         }
         this.curClass = null;
         return null;
@@ -134,7 +136,7 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
         if (!this.checkClassName(Symbol.symbol(cd.i.s))) {
             this.errors.add(new NameConflictError(cd.i.s, cd.i.lineNumber, cd.i.columnNumber));
         } else {
-            this.classes.put(Symbol.symbol(cd.i.s), this.curClass);
+            this.classes.add(Symbol.symbol(cd.i.s), this.curClass);
         }
         this.curClass = null;
         return null;
@@ -155,7 +157,7 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
         if (!this.checkClassName(Symbol.symbol(cd.i.s))) {
             this.errors.add(new NameConflictError(cd.i.s, cd.i.lineNumber, cd.i.columnNumber));
         } else {
-            this.classes.put(Symbol.symbol(cd.i.s), this.curClass);
+            this.classes.add(Symbol.symbol(cd.i.s), this.curClass);
         }
         this.curClass = null;
         return null;
@@ -178,22 +180,22 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
         }
         md.e.accept(this);
 
-        if (!this.checkClassVar(Symbol.symbol(md.i.s))) {
+        if (!this.checkClassMethod(Symbol.symbol(md.i.s))) {
             this.errors.add(new NameConflictError(md.i.s, md.i.lineNumber, md.i.columnNumber));
         } else {
-            this.curClass.setVar(Symbol.symbol(md.i.s), this.curMethod);
+            this.curClass.setMethod(Symbol.symbol(md.i.s), this.curMethod);
         }
         this.curMethod = null;
         return null;
     }
 
     public Void visit(FieldDecl fd) {
-        if (!this.checkClassVar(Symbol.symbol(fd.i.s))) {
+        if (!this.checkClassField(Symbol.symbol(fd.i.s))) {
             this.errors.add(new NameConflictError(fd.i.s, fd.i.lineNumber, fd.i.columnNumber));
         } else {
             String typeStr = this.getTypeString(fd.t);
             debug(this.curClass.getName() + ": " + fd.i.s + "::" + typeStr);
-            this.curClass.setVar(Symbol.symbol(fd.i.s), new BasicType(typeStr));
+            this.curClass.setField(Symbol.symbol(fd.i.s), new BasicType(typeStr));
         }
         return null;
     }
@@ -204,7 +206,7 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
         } else {
             String typeStr = this.getTypeString(ld.t);
             debug(this.curClass.getName() + "." + this.curMethod.getName() + ": " + ld.i.s + "::" + typeStr);
-            this.curMethod.setVar(Symbol.symbol(ld.i.s), new BasicType(typeStr));
+            this.curMethod.setLocal(Symbol.symbol(ld.i.s), new BasicType(typeStr));
         }
         return null;
     }

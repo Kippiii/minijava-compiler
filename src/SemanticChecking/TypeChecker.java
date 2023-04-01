@@ -10,12 +10,12 @@ import java.util.List;
 import java.util.Map;
 
 public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Type> {
-    HashMap<Symbol, ClassType> symbolTable;
+    NameSpace symbolTable;
     ClassType curClass;
     MethodType curMethod;
     List<CompilerException> errors;
 
-    SemanticChecking.Symbol.Type getTypeOfSymbol(Symbol s) {
+    SemanticChecking.Symbol.Type getTypeOfVariable(Symbol s) {
         if (this.curMethod != null) {
             SemanticChecking.Symbol.Type t = this.curMethod.getType(s);
             if (t != null) {
@@ -24,18 +24,37 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         }
         ClassType ct = this.curClass;
         while (ct != null) {
-            SemanticChecking.Symbol.Type t = ct.getVarType(s);
+            SemanticChecking.Symbol.Type t = ct.getFieldType(s);
             if (t != null) {
                 return t;
             }
 
             if (ct.getExtName() != null) {
-                ct = symbolTable.get(ct.getExtName());
+                ct = (ClassType) symbolTable.getType(ct.getExtName());
             } else {
                 ct = null;
             }
         }
-        return this.symbolTable.get(s);
+        return null;
+    }
+
+    SemanticChecking.Symbol.Type getTypeOfMethod(Symbol s) {
+        if (this.curClass != null) {
+            ClassType ct = this.curClass;
+            while (ct != null) {
+                SemanticChecking.Symbol.Type t = ct.getMethodType(s);
+                if (t != null) {
+                    return t;
+                }
+
+                if (ct.getExtName() != null) {
+                    ct = (ClassType) symbolTable.getType(ct.getExtName());
+                } else {
+                    ct = null;
+                }
+            }
+        }
+        return null;
     }
 
     boolean checkTypeEquals(SemanticChecking.Symbol.Type expected, SemanticChecking.Symbol.Type received) {
@@ -45,7 +64,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (expected.toString().equals(received.toString())) {
             return true;
         }
-        ClassType ct = this.symbolTable.get(Symbol.symbol(received.toString()));
+        ClassType ct = (ClassType) this.symbolTable.getType(Symbol.symbol(received.toString()));
         if (ct != null) {
             if (ct.getExtName() == null) {
                 return false;
@@ -59,18 +78,18 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         if (field == null || parentName == null) {
             return false;
         }
-        ClassType ct = this.symbolTable.get(parentName);
-        if (ct.getVarType(field) != null) {
+        ClassType ct = (ClassType) this.symbolTable.getType(parentName);
+        if (ct.getFieldType(field) != null) {
             return true;
         }
         return isInherited(field, ct.getExtName());
     }
 
     ClassType getClassOfObj(SemanticChecking.Symbol.Type t) {
-        return this.symbolTable.get(Symbol.symbol(t.toString()));
+        return (ClassType) this.symbolTable.getType(Symbol.symbol(t.toString()));
     }
 
-    public TypeChecker(HashMap<Symbol, ClassType> symbolTable) {
+    public TypeChecker(NameSpace symbolTable) {
         this.symbolTable = symbolTable;
         this.curClass = null;
         this.curMethod = null;
@@ -88,14 +107,14 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     public SemanticChecking.Symbol.Type visit(MainClass mc) {
-        this.curClass = this.symbolTable.get(Symbol.symbol(mc.nameOfMainClass.s));
+        this.curClass = (ClassType) this.symbolTable.getType(Symbol.symbol(mc.nameOfMainClass.s));
         mc.body.accept(this);
         this.curClass = null;
         return null;
     }
 
     public SemanticChecking.Symbol.Type visit(SimpleClassDecl cd) {
-        this.curClass = this.symbolTable.get(Symbol.symbol(cd.i.s));
+        this.curClass = (ClassType) this.symbolTable.getType(Symbol.symbol(cd.i.s));
         for (FieldDecl fd : cd.fields) {
             fd.accept(this);
         }
@@ -108,12 +127,12 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
 
     public SemanticChecking.Symbol.Type visit(ExtendingClassDecl cd) {
         // Check extension type
-        SemanticChecking.Symbol.Type extType = this.symbolTable.get(Symbol.symbol(cd.j.s));
+        SemanticChecking.Symbol.Type extType = (ClassType) this.symbolTable.getType(Symbol.symbol(cd.j.s));
         if (extType == null) {
             this.errors.add(new InvalidClassError(cd.j.s, cd.j.lineNumber, cd.j.columnNumber));
         }
 
-        this.curClass = this.symbolTable.get(Symbol.symbol(cd.i.s));
+        this.curClass = (ClassType) this.symbolTable.getType(Symbol.symbol(cd.i.s));
         for (FieldDecl fd : cd.fields) {
             fd.accept(this);
         }
@@ -129,7 +148,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
             this.errors.add(new NameConflictError(md.i.s, md.i.lineNumber, md.i.columnNumber));
         }
 
-        this.curMethod = (MethodType) this.curClass.getVarType(Symbol.symbol(md.i.s));
+        this.curMethod = (MethodType) this.curClass.getMethodType(Symbol.symbol(md.i.s));
         for (FormalDecl fd : md.formals) {
             fd.accept(this);
         }
@@ -185,7 +204,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     public SemanticChecking.Symbol.Type visit(IdentifierType it) {
-        if (this.symbolTable.get(Symbol.symbol(it.nameOfType)) == null) {
+        if (this.symbolTable.getType(Symbol.symbol(it.nameOfType)) == null) {
             this.errors.add(new InvalidClassError(it.nameOfType, it.lineNumber, it.columnNumber));
         }
         return null;
@@ -236,7 +255,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     public SemanticChecking.Symbol.Type visit(final Assign a) {
-        SemanticChecking.Symbol.Type t1 = this.getTypeOfSymbol(Symbol.symbol(a.i.s));
+        SemanticChecking.Symbol.Type t1 = this.getTypeOfVariable(Symbol.symbol(a.i.s));
         SemanticChecking.Symbol.Type t2 = a.e.accept(this);
         if (t1 == null || t2 == null) {
             return null;
@@ -249,7 +268,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
 
     public SemanticChecking.Symbol.Type visit(ArrayAssign aa) {
         // Check that name is array
-        SemanticChecking.Symbol.Type arrType = this.getTypeOfSymbol(Symbol.symbol(aa.nameOfArray.s));
+        SemanticChecking.Symbol.Type arrType = this.getTypeOfVariable(Symbol.symbol(aa.nameOfArray.s));
         if (arrType == null) {
             return null;
         }
@@ -397,7 +416,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
         ClassType curClass = this.curClass;
         this.curMethod = null;
         this.curClass = classType;
-        SemanticChecking.Symbol.Type mt = this.getTypeOfSymbol(Symbol.symbol(c.i.s));
+        SemanticChecking.Symbol.Type mt = this.getTypeOfMethod(Symbol.symbol(c.i.s));
         this.curClass = curClass;
         this.curMethod = curMethod;
         if (mt == null || !(mt instanceof MethodType)) {
@@ -441,7 +460,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     public SemanticChecking.Symbol.Type visit(IdentifierExp ie) {
-        SemanticChecking.Symbol.Type t = this.getTypeOfSymbol(Symbol.symbol(ie.s));
+        SemanticChecking.Symbol.Type t = this.getTypeOfVariable(Symbol.symbol(ie.s));
         if (t == null) {
             this.errors.add(new UndefinedSymbolError(ie.s, ie.lineNumber, ie.columnNumber));
         }
@@ -457,7 +476,7 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     public SemanticChecking.Symbol.Type visit(NewObject no) {
-        if (this.symbolTable.get(Symbol.symbol(no.i.s)) == null) {
+        if (this.symbolTable.getType(Symbol.symbol(no.i.s)) == null) {
             this.errors.add(new InvalidClassError(no.i.s, no.i.lineNumber, no.i.columnNumber));
             return null;
         }

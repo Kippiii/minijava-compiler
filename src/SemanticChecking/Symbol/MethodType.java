@@ -5,16 +5,14 @@ import java.util.*;
 public class MethodType extends Type {
     private String name;
     private Type retType;
-    private HashMap<Symbol, Type> argTypes;
-    private List<Type> orderedArgs;
-    private HashMap<Symbol, Type> varTypes;
+    private NameSpace args;
+    private NameSpace locals;
 
     public MethodType(String name) {
         this.name = name;
         this.retType = null;
-        this.argTypes = new HashMap<Symbol, Type>();
-        this.orderedArgs = new ArrayList<Type>();
-        this.varTypes = new HashMap<Symbol, Type>();
+        this.args = new NameSpace();
+        this.locals = new NameSpace();
     }
 
     public String getName() {
@@ -24,39 +22,45 @@ public class MethodType extends Type {
         return this.retType;
     }
     public Type getArgType(Symbol s) {
-        return this.argTypes.get(s);
+        return this.args.getType(s);
     }
     public Type getArgType(int i) {
-        return this.orderedArgs.get(i);
+        return this.args.getType(i);
     }
     public int getNumArgs() {
-        return this.orderedArgs.size();
+        return this.args.size();
     }
     public Enumeration<Symbol> getArgSymbols() {
-        return Collections.enumeration(this.argTypes.keySet());
+        return this.args.getEnum();
     }
-    public Type getVarType(Symbol s) {
-        return this.varTypes.get(s);
+    public Type getLocalType(Symbol s) {
+        return this.locals.getType(s);
     }
-    public Enumeration<Symbol> getVarSymbols() {
-        return Collections.enumeration(this.varTypes.keySet());
+    public Enumeration<Symbol> getLocalSymbols() {
+        return this.locals.getEnum();
     }
     public Type getType(Symbol s) {
         Type t = this.getArgType(s);
         if (t == null)
-            return this.getVarType(s);
+            return this.getLocalType(s);
         return t;
+    }
+
+    public int getArgNum(Symbol s) {
+        return this.args.getNum(s);
+    }
+    public int getLocalNum(Symbol s) {
+        return this.args.getNum(s);
     }
 
     public void setRetType(Type r) {
         this.retType = r;
     }
     public void setArg(Symbol s, Type t) {
-        this.argTypes.put(s, t);
-        this.orderedArgs.add(t);
+        this.args.add(s, t);
     }
-    public void setVar(Symbol s, Type t) {
-        this.varTypes.put(s, t);
+    public void setLocal(Symbol s, Type t) {
+        this.locals.add(s, t);
     }
 
     @Override

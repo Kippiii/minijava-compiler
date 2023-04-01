@@ -2,6 +2,7 @@ package IRTranslation;
 
 import SemanticChecking.Symbol.ClassType;
 import SemanticChecking.Symbol.MethodType;
+import SemanticChecking.Symbol.NameSpace;
 import SemanticChecking.Symbol.Symbol;
 import syntax.*;
 import tree.*;
@@ -17,25 +18,31 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     Symbol curClassName;
     Symbol curMethodName;
     int curId;
-    Map<Symbol, ClassType> symbolTable;
+    NameSpace symbolTable;
+    Map<Symbol, Stm> fragments;
 
     private Exp genVarLValue(Symbol variable) {
-        // TODO
-        ClassType ct = this.symbolTable.get(variable);
-        MethodType mt = (MethodType) ct.getVarType(variable);
+        ClassType ct = (ClassType) this.symbolTable.getType(variable);
+        MethodType mt = ct.getMethodType(variable);
         // If variable is arg
         if (mt.getArgType(variable) != null) {
             // Return register
+            int argNum = mt.getArgNum(variable) + 1;
+            return new TEMP("%i" + Integer.toString(argNum));
         }
         // If variable is local
-        if (mt.getVarType(variable) != null) {
+        if (mt.getLocalType(variable) != null) {
             // Return stack offset
+            int offset = mt.getLocalNum(variable);
+            return new BINOP(BINOP.MINUS, new TEMP("%fp"), new CONST(offset));
         }
         // If variable is class
-        if (ct.getVarType(variable) != null) {
+        if (ct.getFieldType(variable) != null) {
             // Return access of this
+            int offset = ct.getOffset(variable, this.symbolTable);
+            return new BINOP(BINOP.PLUS, new TEMP("%i0"), new CONST(offset));
         }
-        // Error
+        return null;
     }
 
     private Exp toExp(Stm s) {
@@ -60,7 +67,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
         return new CALL(new NameOfLabel(allocFunction), size);
     }
 
-    public IRGenerator(Map<Symbol, ClassType> symbolTable) {
+    public IRGenerator(NameSpace symbolTable) {
         this.curClassName = null;
         this.curMethodName = null;
         this.curId = 0;
@@ -101,18 +108,33 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     public Stm visit(MethodDecl md) {
-        // TODO
         // Create label for function
+        this.curMethodName = Symbol.symbol(md.i.s);
+        NameOfLabel fLabel = new NameOfLabel(this.curClassName.toString(), this.curMethodName.toString(), "preludeEnd");
 
         // Create function body
+        Stm body;
+        if (md.sl.size() > 0) {
+            body = md.sl.get(md.sl.size()-1).accept(this);
+            for (int i = md.sl.size()-2; i >= 0; i--)
+                body = new SEQ(md.sl.get(i).accept(this), body);
+        } else {
+            body = new EVAL(new CONST(0));
+        }
 
         // Move return value into register
+        Stm ret = new MOVE(new TEMP("%i0"), this.toExp(md.e.accept(this)));
 
         // Create jump to epilogue
+        NameOfLabel feLabel = new NameOfLabel(this.curClassName.toString(), this.curMethodName.toString(), "epilogBegin");
+        Stm jump = new JUMP(feLabel);
 
         // Put pieces together
+        Stm function = new SEQ(new LABEL(fLabel), new SEQ(new SEQ(body, ret), jump));
 
         // Add to list of functions
+        fragments.put(Symbol.symbol(NameOfLabel.concat(this.curClassName.toString(), this.curMethodName.toString())), function);
+        return null;
     }
 
     public Stm visit(FieldDecl fd) {
@@ -351,9 +373,6 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
 
     public Stm visit(Call c) {
         // Find label of function
-        if (c.getReceiverClassName() == null) {
-            // TODO Error
-        }
         NameOfLabel functionLabel = new NameOfLabel(c.getReceiverClassName(), c.i.s);
         Exp f = new NAME(functionLabel);
 
@@ -422,7 +441,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
 
     public Stm visit(NewObject no) {
         // Calculate size of object
-        int objSize = this.symbolTable.get(Symbol.symbol(no.i.s)).getObjectSize(this.symbolTable);
+        int objSize = ((ClassType) this.symbolTable.getType(Symbol.symbol(no.i.s))).getObjectSize(this.symbolTable);
 
         // Set up call for allocating size
         Exp allocation = this.genAllocation(new CONST(objSize));
