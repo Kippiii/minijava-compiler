@@ -2,8 +2,16 @@ package IRTranslation;
 
 import ErrorManagement.CompilerException;
 import ErrorManagement.CompilerExceptionList;
+import SemanticChecking.Check;
+import SemanticChecking.CheckReturn;
+import SemanticChecking.Symbol.NameSpace;
+import SemanticChecking.Symbol.Symbol;
+import syntax.Program;
+import tree.Stm;
+import tree.TreePrint;
 
 import java.io.FileNotFoundException;
+import java.util.Map;
 
 public class Translate {
     static String filename = "Factorial.java";
@@ -31,6 +39,21 @@ public class Translate {
     }
 
     public static void translate(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList {
-        // TODO
+        CheckReturn checked = Check.check(filename);
+        Program syntaxTree = checked.syntaxTree();
+        NameSpace symbolTable = checked.symbolTable();
+
+        IRGenerator ir = new IRGenerator(symbolTable);
+        ir.visit(syntaxTree);
+        Map<Symbol, Stm> fragments = ir.fragments;
+
+        if (debug) {
+            for (Map.Entry<Symbol, Stm> entry : fragments.entrySet()) {
+                System.out.printf("!  Procedure fragment %s%n", entry.getKey().toString());
+                System.out.println(TreePrint.toString(entry.getValue()));
+                System.out.println("!  End fragment");
+                System.out.println();
+            }
+        }
     }
 }

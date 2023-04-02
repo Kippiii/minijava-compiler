@@ -31,11 +31,11 @@ public class Check {
         System.out.printf("filename=%s, errors=%d%n", filename, errors);
     }
 
-    public static Program check(String filename) throws FileNotFoundException, CompilerExceptionList {
+    public static CheckReturn check(String filename) throws FileNotFoundException, CompilerExceptionList {
         return check(filename, false);
     }
 
-    public static Program check(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList {
+    public static CheckReturn check(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList {
         Program program = BuildAbstract.buildAbstractTree(filename);
 
         // Create symbol table
@@ -87,7 +87,7 @@ public class Check {
         if (tc.errors.size() > 0)
             throw new CompilerExceptionList(tc.errors);
 
-        return program;
+        return new CheckReturn(program, symbolTable);
     }
 
     static void checkInheritance(NameSpace symbolTable) throws CompilerExceptionList {
