@@ -475,7 +475,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
         Stm getAddr = new MOVE(new TEMP(addrTemp), addr);
 
         // Initialize first element to be length
-        Stm initLength = new MOVE(new TEMP(addrTemp), new TEMP(sizeTemp));
+        Stm initLength = new MOVE(new MEM(new TEMP(addrTemp)), new TEMP(sizeTemp));
 
         // Return
         return this.toStm(new ESEQ(new SEQ(getSize, new SEQ(getAddr, initLength)), new TEMP(addrTemp)));
