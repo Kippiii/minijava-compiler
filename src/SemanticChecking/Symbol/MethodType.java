@@ -50,7 +50,7 @@ public class MethodType extends Type {
         return this.args.getNum(s);
     }
     public int getLocalNum(Symbol s) {
-        return this.args.getNum(s);
+        return this.locals.getNum(s);
     }
 
     public void setRetType(Type r) {

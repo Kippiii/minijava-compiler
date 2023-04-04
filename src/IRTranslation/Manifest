@@ -1,2 +1,2 @@
 Main-Class: IRTranslation.Translate
-Class-Path: support.jar
+Class-Path: ./support.jar

@@ -63,7 +63,7 @@ public class ClassType extends Type {
             upperSize = ((ClassType) symbolTable.getType(this.extName)).getObjectSize(symbolTable);
         }
 
-        return 4*(index + upperSize);
+        return 4*index + upperSize;
     }
 
     @Override

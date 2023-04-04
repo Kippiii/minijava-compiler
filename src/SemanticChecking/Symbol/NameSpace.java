@@ -1,17 +1,14 @@
 package SemanticChecking.Symbol;
 
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class NameSpace {
     private Map<Symbol, Type> table;
     private List<Symbol> order;
 
     public NameSpace() {
-        this.table = null;
-        this.order = null;
+        this.table = new HashMap<Symbol, Type>();
+        this.order = new ArrayList<Symbol>();
     }
 
     public Type getType(Symbol s) {

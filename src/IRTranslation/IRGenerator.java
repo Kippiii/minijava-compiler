@@ -9,6 +9,7 @@ import tree.*;
 
 import javax.naming.Name;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,25 +23,34 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     Map<Symbol, Stm> fragments;
 
     private Exp genVarLValue(Symbol variable) {
-        ClassType ct = (ClassType) this.symbolTable.getType(variable);
-        MethodType mt = ct.getMethodType(variable);
+        ClassType ct = (ClassType) this.symbolTable.getType(this.curClassName);
+        MethodType mt = ct.getMethodType(this.curMethodName);
+
         // If variable is arg
         if (mt.getArgType(variable) != null) {
             // Return register
             int argNum = mt.getArgNum(variable) + 1;
             return new TEMP("%i" + Integer.toString(argNum));
         }
+
         // If variable is local
         if (mt.getLocalType(variable) != null) {
             // Return stack offset
-            int offset = mt.getLocalNum(variable);
+            int offset = 4*mt.getLocalNum(variable) + 4;
             return new BINOP(BINOP.MINUS, new TEMP("%fp"), new CONST(offset));
         }
-        // If variable is class
-        if (ct.getFieldType(variable) != null) {
-            // Return access of this
-            int offset = ct.getOffset(variable, this.symbolTable);
-            return new BINOP(BINOP.PLUS, new TEMP("%i0"), new CONST(offset));
+
+        // Variable is field
+        while (true) {
+            if (ct.getFieldType(variable) != null) {
+                // Return access of this
+                int offset = ct.getOffset(variable, this.symbolTable);
+                return new BINOP(BINOP.PLUS, new TEMP("%i0"), new CONST(offset));
+            }
+            if (ct.getExtName() == null) {
+                break;
+            }
+            ct = (ClassType) this.symbolTable.getType(ct.getExtName());
         }
         return null;
     }
@@ -59,7 +69,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     private NameOfLabel genLabelWithIndex(String ... s) {
-        s[s.length - 1] += Integer.toString(this.curId++);
+        s[s.length - 1] = s[s.length - 1] + Integer.toString(this.curId++);
         return new NameOfLabel(s);
     }
 
@@ -67,11 +77,26 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
         return new CALL(new NameOfLabel(allocFunction), size);
     }
 
+    private String getNameForMethod(String className, String methodName) {
+        ClassType ct = (ClassType) this.symbolTable.getType(Symbol.symbol(className));
+        while (true) {
+            if (ct.getMethodType(Symbol.symbol(methodName)) != null) {
+                return ct.getName();
+            }
+            if (ct.getExtName() == null) {
+                break;
+            }
+            ct = (ClassType) this.symbolTable.getType(ct.getExtName());
+        }
+        return null;
+    }
+
     public IRGenerator(NameSpace symbolTable) {
         this.curClassName = null;
         this.curMethodName = null;
         this.curId = 0;
         this.symbolTable = symbolTable;
+        this.fragments = new HashMap<Symbol, Stm>();
     }
 
     public Stm visit(Program p) {
@@ -85,7 +110,23 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     public Stm visit(MainClass mc) {
         // save class name
         this.curClassName = Symbol.symbol(mc.nameOfMainClass.s);
-        mc.body.accept(this);
+
+        // Create label for function
+        NameOfLabel fLabel = new NameOfLabel(this.curClassName.toString(), "main", "preludeEnd");
+
+        // Create function body
+        Stm body = mc.body.accept(this);
+
+        // Create jump to epilogue
+        NameOfLabel feLabel = new NameOfLabel(this.curClassName.toString(), "main", "epilogBegin");
+        Stm jump = new JUMP(feLabel);
+
+        // Put pieces together
+        Stm main = new SEQ(new LABEL(fLabel), new SEQ(body, jump));
+
+        // Add to list of functions
+        this.fragments.put(Symbol.symbol(NameOfLabel.concat(this.curClassName.toString(), "main")), main);
+
         return null;
     }
 
@@ -248,7 +289,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
         Exp rvalue = this.toExp(a.e.accept(this));
 
         // Move r-value to l-value
-        Stm move = new MOVE(lvalue, rvalue);
+        Stm move = new MOVE(lvalue instanceof TEMP ? lvalue : new MEM(lvalue), rvalue);
 
         // Return
         return move;
@@ -265,7 +306,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
         Exp rvalue = this.toExp(aa.e.accept(this));
 
         // Move r-value to l-value
-        Stm move = new MOVE(lvalue, rvalue);
+        Stm move = new MOVE(new MEM(lvalue), rvalue);
 
         // Return
         return move;
@@ -288,9 +329,9 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     public Stm visit(final LessThan lt) {
         // Select temp variable for result (and labels)
         NameOfTemp ltTemp = new NameOfTemp("%lt");
-        NameOfLabel trueLabel = new NameOfLabel("less", "than");
-        NameOfLabel falseLabel = new NameOfLabel("less", "than");
-        NameOfLabel afterFalseLabel = new NameOfLabel("less", "than");
+        NameOfLabel trueLabel = this.genLabelWithIndex("less", "than");
+        NameOfLabel falseLabel = this.genLabelWithIndex("less", "than");
+        NameOfLabel afterFalseLabel = this.genLabelWithIndex("less", "than");
 
         // Create true case
         Stm ifTrue = new SEQ(new LABEL(trueLabel), new MOVE(new TEMP(ltTemp), new CONST(1)));
@@ -373,7 +414,8 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
 
     public Stm visit(Call c) {
         // Find label of function
-        NameOfLabel functionLabel = new NameOfLabel(c.getReceiverClassName(), c.i.s);
+        String className = this.getNameForMethod(c.getReceiverClassName(), c.i.s);
+        NameOfLabel functionLabel = new NameOfLabel(className, c.i.s);
         Exp f = new NAME(functionLabel);
 
         // Evaluate called-on object
@@ -410,7 +452,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
         Exp lvalue = this.genVarLValue(Symbol.symbol(ie.s));
 
         // Return computed r-value
-        return this.toStm(new MEM(lvalue));
+        return this.toStm(lvalue instanceof TEMP ? lvalue : new MEM(lvalue));
     }
 
     public Stm visit(This t) {
@@ -433,7 +475,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
         Stm getAddr = new MOVE(new TEMP(addrTemp), addr);
 
         // Initialize first element to be length
-        Stm initLength = new MOVE(new MEM(new TEMP(addrTemp)), new TEMP(sizeTemp));
+        Stm initLength = new MOVE(new TEMP(addrTemp), new TEMP(sizeTemp));
 
         // Return
         return this.toStm(new ESEQ(new SEQ(getSize, new SEQ(getAddr, initLength)), new TEMP(addrTemp)));

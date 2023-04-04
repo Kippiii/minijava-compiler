@@ -50,7 +50,7 @@ public class Translate {
         if (debug) {
             for (Map.Entry<Symbol, Stm> entry : fragments.entrySet()) {
                 System.out.printf("!  Procedure fragment %s%n", entry.getKey().toString());
-                System.out.println(TreePrint.toString(entry.getValue()));
+                System.out.print(TreePrint.toString(entry.getValue()));
                 System.out.println("!  End fragment");
                 System.out.println();
             }

@@ -16,10 +16,10 @@ translate.jar:
 	$(JAVAC) -classpath .:$(SUPPORT) SemanticChecking/*.java
 	$(JAVAC) -classpath .:$(SUPPORT) SemanticChecking/Symbol/*.java
 	$(JAVAC) -classpath .:$(SUPPORT) IRTranslation/*.java
-	jar cfm $@ Manifest */*.class
+	jar cfm $@ Manifest */*.class */*/*.class
 
 clean:
-	rm -f check.jar
+	rm -f translate.jar
 	rm -f ParserGenerator/*.class
 	rm -f LexicalAnalysis/*.class
 	rm -f Parsing/*.class
