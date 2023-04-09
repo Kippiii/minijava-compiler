@@ -17,6 +17,7 @@ public class Utilities {
         ABSTRACT_BUILDER,
         CHECKER,
         TRANSLATOR,
+        SELECTOR,
     }
     public static Phase getPhase(String phaseStr) {
         if (phaseStr.equals("lexer"))
@@ -29,7 +30,9 @@ public class Utilities {
             return Phase.CHECKER;
         if (phaseStr.equals("translate"))
             return Phase.TRANSLATOR;
-        return Phase.TRANSLATOR;
+        if (phaseStr.equals("selector"))
+            return Phase.SELECTOR;
+        return Phase.SELECTOR;
     }
     public static String getDirectory(Phase phase) {
         switch(phase) {
@@ -42,21 +45,29 @@ public class Utilities {
             case CHECKER:
                 return "SemanticChecking";
             case TRANSLATOR:
-                return "IRTranslation"
+                return "IRTranslation";
+            case SELECTOR:
+                    return "InstructionSelection";
         }
         return "";
     }
     public static List<String> getDirectoriesToAdd(Phase phase) {
         List<String> directories = new ArrayList<String>();
         switch(phase) {
+            case SELECTOR:
+                directories.add("InstructionSelection/Select.java");
             case TRANSLATOR:
+                directories.add("IRTranslation/Translate.java");
+                directories.add("IRTranslation/IRGenerator.java");
             case CHECKER:
                 directories.add("SemanticChecking/Symbol/BasicType.java");
                 directories.add("SemanticChecking/Symbol/ClassType.java");
                 directories.add("SemanticChecking/Symbol/MethodType.java");
                 directories.add("SemanticChecking/Symbol/Symbol.java");
                 directories.add("SemanticChecking/Symbol/Type.java");
+                directories.add("SemanticChecking/Symbol/NameSpace.java");
                 directories.add("SemanticChecking/Check.java");
+                directories.add("SemanticChecking/CheckReturn.java");
                 directories.add("SemanticChecking/NameConflictError.java");
                 directories.add("SemanticChecking/SymbolTableFactory.java");
                 directories.add("SemanticChecking/AccessingNonClassError.java");
@@ -114,6 +125,8 @@ public class Utilities {
                 return "phase05.jar";
             case TRANSLATOR:
                 return "phase07.jar";
+            case SELECTOR:
+                    return "phase09.jar";
         }
         return "invalid.jar";
     }

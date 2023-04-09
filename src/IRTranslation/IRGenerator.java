@@ -348,7 +348,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
         Exp e = new TEMP(ltTemp);
 
         // Return CEXP with statement and expression
-        return this.toStm(new ESEQ(new SEQ(cjump, new SEQ(ifTrue, new SEQ(ifFalse, new LABEL(afterFalseLabel)))), e));
+        return this.toStm(new RET(new SEQ(cjump, new SEQ(ifTrue, new SEQ(ifFalse, new LABEL(afterFalseLabel)))), e));
     }
 
     public Stm visit(final Plus p) {
@@ -478,7 +478,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
         Stm initLength = new MOVE(new MEM(new TEMP(addrTemp)), new TEMP(sizeTemp));
 
         // Return
-        return this.toStm(new ESEQ(new SEQ(getSize, new SEQ(getAddr, initLength)), new TEMP(addrTemp)));
+        return this.toStm(new RET(new SEQ(getSize, new SEQ(getAddr, initLength)), new TEMP(addrTemp)));
     }
 
     public Stm visit(NewObject no) {

@@ -1,19 +1,19 @@
-package IRTranslation;
+package InstructionSelection;
 
 import ErrorManagement.CompilerException;
 import ErrorManagement.CompilerExceptionList;
-import SemanticChecking.Check;
-import SemanticChecking.CheckReturn;
-import SemanticChecking.Symbol.NameSpace;
+import IRTranslation.Translate;
 import SemanticChecking.Symbol.Symbol;
-import syntax.Program;
 import tree.Stm;
 import tree.TreePrint;
 
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class Translate {
+public class Select {
     static String filename = "Factorial.java";
 
     public static void main(String[] args) throws FileNotFoundException {
@@ -23,7 +23,7 @@ public class Translate {
 
         int errors = 0;
         try {
-            translate(filename, debug);
+            select(filename, debug);
         } catch (CompilerExceptionList exc) {
             for (CompilerException err : exc) {
                 System.err.printf("%s:%s%n", filename, err.toString());
@@ -34,28 +34,27 @@ public class Translate {
         System.out.printf("filename=%s, errors=%d%n", filename, errors);
     }
 
-    public static Map<Symbol, Stm> translate(String filename) throws FileNotFoundException, CompilerExceptionList {
-        return translate(filename, false);
+    public static void select(String filename) throws FileNotFoundException, CompilerExceptionList {
+        select(filename, false);
     }
 
-    public static Map<Symbol, Stm> translate(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList {
-        CheckReturn checked = Check.check(filename);
-        Program syntaxTree = checked.syntaxTree();
-        NameSpace symbolTable = checked.symbolTable();
-
-        IRGenerator ir = new IRGenerator(symbolTable);
-        ir.visit(syntaxTree);
-        Map<Symbol, Stm> fragments = ir.fragments;
+    public static void select(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList {
+        Map<Symbol, Stm> fragments = Translate.translate(filename);
+        Map<Symbol, List<Stm>> flattenedFragments = new HashMap<Symbol, List<Stm>>();
+        for (Map.Entry<Symbol, Stm> entry : fragments.entrySet()) {
+            flattenedFragments.put(entry.getKey(), canon.Main.transform(entry.getValue()));
+        }
 
         if (debug) {
-            for (Map.Entry<Symbol, Stm> entry : fragments.entrySet()) {
+            for (Map.Entry<Symbol, List<Stm>> entry : flattenedFragments.entrySet()) {
                 System.out.printf("!  Procedure fragment %s%n", entry.getKey().toString());
-                System.out.print(TreePrint.toString(entry.getValue()));
+                for (Stm s : entry.getValue()) {
+                    System.out.print(TreePrint.toString(s));
+                }
                 System.out.println("!  End fragment");
                 System.out.println();
             }
         }
-
-        return fragments;
     }
+
 }

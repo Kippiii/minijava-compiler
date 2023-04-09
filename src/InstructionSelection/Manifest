@@ -1,0 +1,2 @@
+Main-Class: InstructionSelection.Select
+Class-Path: ./support.jar
