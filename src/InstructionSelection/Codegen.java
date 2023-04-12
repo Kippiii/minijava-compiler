@@ -15,7 +15,10 @@ public class Codegen {
             this.munchSeq(seq.left, seq.right);
         } else if (s instanceof MOVE) {
             MOVE move = (MOVE) s;
-            this.munchMove(move.dst, move.src);
+            if (move.dst instanceof MEM)
+                this.munchMove((MEM) move.dst, move.src);
+            else if (move.dst instanceof TEMP)
+                this.munchMove((TEMP) move.dst, move.src);
         } else if (s instanceof EVAL) {
             EVAL eval = (EVAL) s;
             this.munchEval(eval.exp);
@@ -87,7 +90,7 @@ public class Codegen {
         this.emit(new OperationInstruction("STORE M[`s0] <- `s1\n", null, srcTemps));
     }
 
-    void munchMem(TEMP dst, Exp src) {
+    void munchMove(TEMP dst, Exp src) {
         // MOVE(TEMP(i), src)
         NameOfTemp i = dst.temp;
         List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
@@ -95,6 +98,18 @@ public class Codegen {
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         srcTemps.add(this.munchExp(src));
         this.emit(new OperationInstruction("ADD `d0 <- `s0 + r0\n", dstTemps, srcTemps));
+    }
+
+    void munchEval(Exp s) {
+        // TODO
+    }
+
+    void munchJump(Exp exp, List<NameOfLabel> targets) {
+        // TODO
+    }
+
+    void munchCjump(int rel, Exp left, Exp right, NameOfLabel ifTrue, NameOfLabel ifFalse) {
+        // TODO
     }
 
     void munchLabel(NameOfLabel lab) {
@@ -106,115 +121,148 @@ public class Codegen {
     // TODO Make recursive
 
     NameOfTemp munchExp(Exp s) {
-        if (s instanceof MEM) {
-            Exp e = ((MEM) s).exp;
-            if (e instanceof BINOP) {
-                BINOP binop = (BINOP) e;
-                if (binop.right instanceof CONST) {
-                    int i = ((CONST) binop.right).value;
-                    if (binop.binop == BINOP.PLUS) {
-                        Exp e1 = binop.left;
-                        NameOfTemp r = new NameOfTemp();
-                        List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
-                        dstTemps.add(r);
-                        List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
-                        srcTemps.add(this.munchExp(e1));
-                        this.emit(new OperationInstruction("LOAD `d0 <- M[`s0+" + i + "]\n", dstTemps, srcTemps));
-                        return r;
-                    } else {
-                        // TODO
-                    }
-                }
-                if (binop.left instanceof CONST) {
-                    int i = ((CONST) binop.left).value;
-                    if (binop.binop == BINOP.PLUS) {
-                        Exp e1 = binop.right;
-                        NameOfTemp r = new NameOfTemp();
-                        List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
-                        dstTemps.add(r);
-                        List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
-                        srcTemps.add(this.munchExp(e1));
-                        this.emit(new OperationInstruction("LOAD `d0 <- M[`s0+" + i + "]\n", dstTemps, srcTemps));
-                        return r;
-                    } else {
-                        // TODO
-                    }
-                }
-            }
-            if (e instanceof CONST) {
-                int i = ((CONST) e).value;
-                NameOfTemp r = new NameOfTemp();
-                List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
-                this.emit(new OperationInstruction("LOAD `d0 <- M[r0 +" + i + "]\n", dstTemps, null));
-                return r;
-            }
-            NameOfTemp r = new NameOfTemp();
-            List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
-            dstTemps.add(r);
-            List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
-            srcTemps.add(this.munchExp(e));
-            this.emit(new OperationInstruction("LOAD `d0 <- M[`s0+0]\n", dstTemps, srcTemps));
-            return r;
-        }
-        if (s instanceof BINOP) {
+        if (s instanceof CONST) {
+            CONST c = (CONST) s;
+            return this.munchConst(c.value);
+        } else if (s instanceof NAME) {
+            NAME name = (NAME) s;
+            return this.munchName(name.label);
+        } else if (s instanceof TEMP) {
+            TEMP temp = (TEMP) s;
+            return this.munchTemp(temp.temp);
+        } else if (s instanceof BINOP) {
             BINOP binop = (BINOP) s;
-            if (binop.right instanceof CONST) {
-                int i = ((CONST) binop.right).value;
-                if (binop.binop == BINOP.PLUS) {
-                    Exp e1 = binop.left;
+            return this.munchBinop(binop.binop, binop.left, binop.right);
+        } else if (s instanceof MEM) {
+            MEM mem = (MEM) s;
+            return this.munchMem(mem.exp);
+        } else if (s instanceof CALL) {
+            CALL call = (CALL) s;
+            this.munchCall(call.func, call.args);
+        }
+        return null; // TODO ERROR
+    }
+
+    NameOfTemp munchConst(int i) {
+        NameOfTemp r = new NameOfTemp();
+        List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
+        dstTemps.add(r);
+        this.emit("ADDI `d0 <- r0+" + i + "\n", dstTemps, null);
+        return r;
+    }
+
+    NameOfTemp munchName(NameOfLabel l) {
+        return null; // TODO
+    }
+
+    NameOfTemp munchTemp(NameOfTemp t) {
+        return t;
+    }
+
+    NameOfTemp munchBinop(int op, Exp left, Exp right) {
+        switch (op) {
+            case BINOP.PLUS:
+                if (left instanceof CONST || right instanceof CONST) {
+                    // BINOP(PLUS, CONST(i), e) || BINOP(PLUS, e, CONST(i))
+                    int i;
+                    Exp e;
+                    if (left instanceof CONST) {
+                        i = ((CONST) left).value;
+                        e = right;
+                    } else {
+                        i = ((CONST) right).value;
+                        e = left;
+                    }
                     NameOfTemp r = new NameOfTemp();
                     List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
                     dstTemps.add(r);
                     List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
-                    srcTemps.add(this.munchExp(e1));
+                    srcTemps.add(this.munchExp(e));
                     this.emit("ADDI `d0 <- `s0+" + i + "\n", dstTemps, srcTemps);
                     return r;
-                } else {
-                    // TODO
                 }
-            }
-            if (binop.left instanceof CONST) {
-                int i = ((CONST) binop.left).value;
-                if (binop.binop == BINOP.PLUS) {
-                    Exp e1 = binop.right;
-                    NameOfTemp r = new NameOfTemp();
-                    List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
-                    dstTemps.add(r);
-                    List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
-                    srcTemps.add(this.munchExp(e1));
-                    this.emit("ADDI `d0 <- `s0+" + i + "\n", dstTemps, srcTemps);
-                    return r;
-                } else {
-                    // TODO
-                }
-            }
-            if (binop.left instanceof CONST) {
-                Exp e1 = binop.left;
-                Exp e2 = binop.right;
                 NameOfTemp r = new NameOfTemp();
                 List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
                 dstTemps.add(r);
                 List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
-                srcTemps.add(this.munchExp(e1));
-                srcTemps.add(this.munchExp(e2));
+                srcTemps.add(this.munchExp(left));
+                srcTemps.add(this.munchExp(right));
                 this.emit("ADD `d0 <- `s0+`s1\n", dstTemps, srcTemps);
                 return r;
-            } else {
+            break;
+            case BINOP.MINUS:
                 // TODO
+                break;
+            case BINOP.MUL:
+                // TODO
+                break;
+            case BINOP.DIV:
+                // TODO
+                break;
+            case BINOP.AND:
+                // TODO
+                break;
+            case BINOP.OR:
+                // TODO
+                break;
+            case BINOP.LSHIFT:
+                // TODO
+                break;
+            case BINOP.RSHIFT:
+                // TODO
+                break;
+            case BINOP.ARSHIFT:
+                // TODO
+                break;
+            case BINOP.XOR:
+                // TODO
+                break;
+        }
+        return null; // TODO ERROR
+    }
+
+    NameOfTemp munchMem(Exp exp) {
+        if (exp instanceof BINOP) {
+            BINOP binop = (BINOP) exp;
+            if (binop.binop == BINOP.PLUS && (binop.left instanceof CONST || binop.right instanceof CONST)) {
+                // MEM(BINOP(PLUS, CONST(i), e)) || MEM(BINOP(PLUS, e, CONST(i)))
+                int i;
+                Exp e;
+                if (binop.left instanceof CONST) {
+                    i = ((CONST) binop.left).value;
+                    e = binop.right;
+                } else {
+                    i = ((CONST) binop.right).value;
+                    e = binop.left;
+                }
+                NameOfTemp r = new NameOfTemp();
+                List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
+                dstTemps.add(r);
+                List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
+                srcTemps.add(this.munchExp(e));
+                this.emit(new OperationInstruction("LOAD `d0 <- M[`s0+" + i + "]\n", dstTemps, srcTemps));
+                return r;
             }
         }
-        if (s instanceof CONST) {
-            int i = ((CONST) s).value;
+        if (exp instanceof CONST) {
+            // MEM(CONST(i))
+            int i = ((CONST) exp).value;
             NameOfTemp r = new NameOfTemp();
             List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
-            dstTemps.add(r);
-            this.emit("ADDI `d0 <- r0+" + i + "\n", dstTemps, null);
+            this.emit(new OperationInstruction("LOAD `d0 <- M[r0 +" + i + "]\n", dstTemps, null));
+            return r;
         }
-        if (s instanceof TEMP) {
-            return ((TEMP) s).temp;
-        }
+        NameOfTemp r = new NameOfTemp();
+        List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
+        dstTemps.add(r);
+        List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
+        srcTemps.add(this.munchExp(exp));
+        this.emit(new OperationInstruction("LOAD `d0 <- M[`s0+0]\n", dstTemps, srcTemps));
+        return r;
+    }
 
-        return null; // TODO ERROR
+    NameOfTemp munchCall(Exp func, ExpList args) {
+        return null; // TODO
     }
 
 }
