@@ -1,6 +1,7 @@
 package InstructionSelection;
 
 import assem.LabelInstruction;
+import assem.MoveInstruction;
 import assem.OperationInstruction;
 import tree.*;
 
@@ -59,20 +60,9 @@ public class Codegen {
                 List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
                 srcTemps.add(this.munchExp(e1));
                 srcTemps.add(this.munchExp(e2));
-                this.emit(new OperationInstruction("STORE M[`s0+" + i + "] <- `s1\n", null, srcTemps));
+                this.emit(new OperationInstruction("st `s1, [`s0+" + i + "]\n", null, srcTemps));
                 return;
             }
-        }
-        if (src instanceof MEM) {
-            // MOVE(MEM(e1), MEM(e2))
-            MEM mem = (MEM) src;
-            Exp e1 = dst.exp;
-            Exp e2 = mem.exp;
-            List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
-            srcTemps.add(this.munchExp(e1));
-            srcTemps.add(this.munchExp(e2));
-            this.emit(new OperationInstruction("MOVE M[`s0] <- M[`s1]\n", null, srcTemps));
-            return;
         }
         if (dst.exp instanceof CONST) {
             // MOVE(MEM(CONST(i)), e2)
@@ -80,45 +70,99 @@ public class Codegen {
             Exp e2 = src;
             List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
             srcTemps.add(this.munchExp(src));
-            this.emit(new OperationInstruction("STORE M[r0+" + i + "] <- `s0\n", null, srcTemps));
+            this.emit(new OperationInstruction("st `s0, [" + i + "]\n", null, srcTemps));
             return;
         }
         // MOVE(MEM(dst), src)
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         srcTemps.add(this.munchExp(dst));
         srcTemps.add(this.munchExp(src));
-        this.emit(new OperationInstruction("STORE M[`s0] <- `s1\n", null, srcTemps));
+        this.emit(new OperationInstruction("st `s1, [`s0]\n", null, srcTemps));
     }
 
     void munchMove(TEMP dst, Exp src) {
         // MOVE(TEMP(i), src)
         NameOfTemp i = dst.temp;
-        List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
-        dstTemps.add(i);
-        List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
-        srcTemps.add(this.munchExp(src));
-        this.emit(new OperationInstruction("ADD `d0 <- `s0 + r0\n", dstTemps, srcTemps));
+        this.emit(new MoveInstruction("mov `s0, `d0\n", i, this.munchExp(src)));
     }
 
     void munchEval(Exp s) {
-        // TODO
+        // EVAL(s)
+        this.munchExp(s);
     }
 
     void munchJump(Exp exp, List<NameOfLabel> targets) {
-        // TODO
+        if (exp instanceof NAME) {
+            // JUMP(NAME(label), targets)
+            NAME name = (NAME) exp;
+            this.emit(new OperationInstruction("jmp " + name.label.toString() + "\n", null, null, targets));
+            return;
+        }
+        if (exp instanceof CONST) {
+            // JUMP(CONST(i), targets)
+            int i = ((CONST) exp).value;
+            this.emit(new OperationInstruction("jmp [" + i + "]\n", null, null, targets));
+            return;
+        }
+        // JUMP(exp, targets)
+        List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
+        srcTemps.add(this.munchExp(exp));
+        this.emit(new OperationInstruction("jmp [`s0]\n", null, srcTemps, targets));
     }
 
     void munchCjump(int rel, Exp left, Exp right, NameOfLabel ifTrue, NameOfLabel ifFalse) {
-        // TODO
+        // Do compare operation
+        List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
+        srcTemps.add(this.munchExp(left));
+        srcTemps.add(this.munchExp(right));
+        this.emit("cmp `s0, `s1\n", null, srcTemps);
+
+        // Create jump if true
+        String relOp;
+        switch (rel) {
+            case CJUMP.EQ:
+                relOp = "be";
+                break;
+            case CJUMP.NE:
+                relOp = "bne";
+                break;
+            case CJUMP.LT:
+                relOp = "bl";
+                break;
+            case CJUMP.GT:
+                relOp = "bg";
+                break;
+            case CJUMP.LE:
+                relOp = "ble";
+                break;
+            case CJUMP.GE:
+                relOp = "bge";
+                break;
+            case CJUMP.ULT:
+                relOp = "bcs";
+                break;
+            case CJUMP.UGT:
+                relOp = "bgu";
+                break;
+            case CJUMP.ULE:
+                relOp = "bleu";
+                break;
+            case CJUMP.UGE:
+                relOp = "bcc";
+                break;
+            default:
+                return; // TODO ERROR
+        }
+        List<NameOfLabel> jumps = new ArrayList<NameOfLabel>();
+        jumps.add(ifTrue);
+        jumps.add(ifFalse);
+        this.emit(new OperationInstruction(relOp + " " + ifTrue.toString() + "\n", null, null, jumps));
     }
 
     void munchLabel(NameOfLabel lab) {
         // LABEL(lab)
-        this.emit(new LabelInstruction(lab.toString() + ":\n", lab));
+        this.emit(new LabelInstruction(lab));
     }
-
-
-    // TODO Make recursive
 
     NameOfTemp munchExp(Exp s) {
         if (s instanceof CONST) {
@@ -147,12 +191,12 @@ public class Codegen {
         NameOfTemp r = new NameOfTemp();
         List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
         dstTemps.add(r);
-        this.emit("ADDI `d0 <- r0+" + i + "\n", dstTemps, null);
+        this.emit(new OperationInstruction("mov " + i + ", `d0\n", dstTemps, null));
         return r;
     }
 
     NameOfTemp munchName(NameOfLabel l) {
-        return null; // TODO
+        return null; // TODO ERROR
     }
 
     NameOfTemp munchTemp(NameOfTemp t) {
@@ -160,65 +204,52 @@ public class Codegen {
     }
 
     NameOfTemp munchBinop(int op, Exp left, Exp right) {
+        String opInst;
         switch (op) {
             case BINOP.PLUS:
-                if (left instanceof CONST || right instanceof CONST) {
-                    // BINOP(PLUS, CONST(i), e) || BINOP(PLUS, e, CONST(i))
-                    int i;
-                    Exp e;
-                    if (left instanceof CONST) {
-                        i = ((CONST) left).value;
-                        e = right;
-                    } else {
-                        i = ((CONST) right).value;
-                        e = left;
-                    }
-                    NameOfTemp r = new NameOfTemp();
-                    List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
-                    dstTemps.add(r);
-                    List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
-                    srcTemps.add(this.munchExp(e));
-                    this.emit("ADDI `d0 <- `s0+" + i + "\n", dstTemps, srcTemps);
-                    return r;
-                }
-                NameOfTemp r = new NameOfTemp();
-                List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
-                dstTemps.add(r);
-                List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
-                srcTemps.add(this.munchExp(left));
-                srcTemps.add(this.munchExp(right));
-                this.emit("ADD `d0 <- `s0+`s1\n", dstTemps, srcTemps);
-                return r;
-            break;
+                // BINOP(PLUS, left, right)
+                opInst = "add";
+                break;
             case BINOP.MINUS:
-                // TODO
+                // BINOP(MINUS, left, right)
+                opInst = "sub";
                 break;
             case BINOP.MUL:
-                // TODO
+                opInst = "smul";
                 break;
             case BINOP.DIV:
-                // TODO
+                opInst = "sdiv";
                 break;
             case BINOP.AND:
-                // TODO
+                opInst = "and";
                 break;
             case BINOP.OR:
-                // TODO
+                opInst = "or";
                 break;
             case BINOP.LSHIFT:
-                // TODO
+                opInst = "sll";
                 break;
             case BINOP.RSHIFT:
-                // TODO
+                opInst = "srl";
                 break;
             case BINOP.ARSHIFT:
-                // TODO
+                opInst = "sra";
                 break;
             case BINOP.XOR:
-                // TODO
+                opInst = "xor";
                 break;
+            default:
+                return null; // TODO ERROR
         }
-        return null; // TODO ERROR
+        // BINOP(op, left, right)
+        NameOfTemp r = new NameOfTemp();
+        List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
+        dstTemps.add(r);
+        List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
+        srcTemps.add(this.munchExp(left));
+        srcTemps.add(this.munchExp(right));
+        this.emit(opInst + " `s0, `s1, `d0\n", dstTemps, srcTemps);
+        return r;
     }
 
     NameOfTemp munchMem(Exp exp) {
@@ -240,7 +271,7 @@ public class Codegen {
                 dstTemps.add(r);
                 List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
                 srcTemps.add(this.munchExp(e));
-                this.emit(new OperationInstruction("LOAD `d0 <- M[`s0+" + i + "]\n", dstTemps, srcTemps));
+                this.emit(new OperationInstruction("ld [`s0+" + i + "], `d0\n", dstTemps, srcTemps));
                 return r;
             }
         }
@@ -249,7 +280,7 @@ public class Codegen {
             int i = ((CONST) exp).value;
             NameOfTemp r = new NameOfTemp();
             List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
-            this.emit(new OperationInstruction("LOAD `d0 <- M[r0 +" + i + "]\n", dstTemps, null));
+            this.emit(new OperationInstruction("ld [" + i + "], `d0\n", dstTemps, null));
             return r;
         }
         NameOfTemp r = new NameOfTemp();
@@ -257,7 +288,7 @@ public class Codegen {
         dstTemps.add(r);
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         srcTemps.add(this.munchExp(exp));
-        this.emit(new OperationInstruction("LOAD `d0 <- M[`s0+0]\n", dstTemps, srcTemps));
+        this.emit(new OperationInstruction("ld [`s0], `d0\n", dstTemps, srcTemps));
         return r;
     }
 
