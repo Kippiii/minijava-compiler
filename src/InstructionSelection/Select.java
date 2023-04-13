@@ -6,6 +6,7 @@ import IRTranslation.Translate;
 import SemanticChecking.Symbol.Symbol;
 import tree.Stm;
 import tree.TreePrint;
+import assem.Instruction;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -50,6 +51,23 @@ public class Select {
                 System.out.printf("!  Procedure fragment %s%n", entry.getKey().toString());
                 for (Stm s : entry.getValue()) {
                     System.out.print(TreePrint.toString(s));
+                }
+                System.out.println("!  End fragment");
+                System.out.println();
+            }
+        }
+
+        Map<Symbol, List<Instruction>> assembly = new HashMap<Symbol, List<Instruction>>();
+        Codegen c = new Codegen();
+        for (Map.Entry<Symbol, List<Stm>> entry : flattenedFragments.entrySet()) {
+            assembly.put(entry.getKey(), c.codegen(entry.getValue()));
+        }
+
+        if (debug) {
+            for (Map.Entry<Symbol, List<Instruction>> entry : assembly.entrySet()) {
+                System.out.printf("!  Procedure fragment %s%n", entry.getKey().toString());
+                for (Instruction i : entry.getValue()) {
+                    System.out.println(i.format());
                 }
                 System.out.println("!  End fragment");
                 System.out.println();

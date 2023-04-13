@@ -1,5 +1,6 @@
 package InstructionSelection;
 
+import assem.Instruction;
 import assem.LabelInstruction;
 import assem.MoveInstruction;
 import assem.OperationInstruction;
@@ -9,6 +10,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Codegen {
+    private List<Instruction> insts;
+
+    private void emit(Instruction inst) {
+        this.insts.add(inst);
+    }
 
     void munchStm(Stm s) {
         if (s instanceof SEQ) {
@@ -60,7 +66,7 @@ public class Codegen {
                 List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
                 srcTemps.add(this.munchExp(e1));
                 srcTemps.add(this.munchExp(e2));
-                this.emit(new OperationInstruction("st `s1, [`s0+" + i + "]\n", null, srcTemps));
+                this.emit(new OperationInstruction("\tst `s1, [`s0+" + i + "]", null, srcTemps));
                 return;
             }
         }
@@ -70,20 +76,20 @@ public class Codegen {
             Exp e2 = src;
             List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
             srcTemps.add(this.munchExp(src));
-            this.emit(new OperationInstruction("st `s0, [" + i + "]\n", null, srcTemps));
+            this.emit(new OperationInstruction("\tst `s0, [" + i + "]", null, srcTemps));
             return;
         }
         // MOVE(MEM(dst), src)
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         srcTemps.add(this.munchExp(dst));
         srcTemps.add(this.munchExp(src));
-        this.emit(new OperationInstruction("st `s1, [`s0]\n", null, srcTemps));
+        this.emit(new OperationInstruction("\tst `s1, [`s0]", null, srcTemps));
     }
 
     void munchMove(TEMP dst, Exp src) {
         // MOVE(TEMP(i), src)
         NameOfTemp i = dst.temp;
-        this.emit(new MoveInstruction("mov `s0, `d0\n", i, this.munchExp(src)));
+        this.emit(new MoveInstruction("\tmov `s0, `d0", i, this.munchExp(src)));
     }
 
     void munchEval(Exp s) {
@@ -95,19 +101,19 @@ public class Codegen {
         if (exp instanceof NAME) {
             // JUMP(NAME(label), targets)
             NAME name = (NAME) exp;
-            this.emit(new OperationInstruction("jmp " + name.label.toString() + "\n", null, null, targets));
+            this.emit(new OperationInstruction("\tjmp " + name.label.toString(), null, null, targets));
             return;
         }
         if (exp instanceof CONST) {
             // JUMP(CONST(i), targets)
             int i = ((CONST) exp).value;
-            this.emit(new OperationInstruction("jmp [" + i + "]\n", null, null, targets));
+            this.emit(new OperationInstruction("\tjmp [" + i + "]", null, null, targets));
             return;
         }
         // JUMP(exp, targets)
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         srcTemps.add(this.munchExp(exp));
-        this.emit(new OperationInstruction("jmp [`s0]\n", null, srcTemps, targets));
+        this.emit(new OperationInstruction("\tjmp [`s0]", null, srcTemps, targets));
     }
 
     void munchCjump(int rel, Exp left, Exp right, NameOfLabel ifTrue, NameOfLabel ifFalse) {
@@ -115,7 +121,7 @@ public class Codegen {
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         srcTemps.add(this.munchExp(left));
         srcTemps.add(this.munchExp(right));
-        this.emit("cmp `s0, `s1\n", null, srcTemps);
+        this.emit(new OperationInstruction("\tcmp `s0, `s1", null, srcTemps));
 
         // Create jump if true
         String relOp;
@@ -156,7 +162,7 @@ public class Codegen {
         List<NameOfLabel> jumps = new ArrayList<NameOfLabel>();
         jumps.add(ifTrue);
         jumps.add(ifFalse);
-        this.emit(new OperationInstruction(relOp + " " + ifTrue.toString() + "\n", null, null, jumps));
+        this.emit(new OperationInstruction("\t" + relOp + " " + ifTrue.toString(), null, null, jumps));
     }
 
     void munchLabel(NameOfLabel lab) {
@@ -182,16 +188,16 @@ public class Codegen {
             return this.munchMem(mem.exp);
         } else if (s instanceof CALL) {
             CALL call = (CALL) s;
-            this.munchCall(call.func, call.args);
+            return this.munchCall(call.func, call.args);
         }
         return null; // TODO ERROR
     }
 
     NameOfTemp munchConst(int i) {
-        NameOfTemp r = new NameOfTemp();
+        NameOfTemp r = NameOfTemp.generateTemp();
         List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
         dstTemps.add(r);
-        this.emit(new OperationInstruction("mov " + i + ", `d0\n", dstTemps, null));
+        this.emit(new OperationInstruction("\tmov " + i + ", `d0", dstTemps, null));
         return r;
     }
 
@@ -242,13 +248,13 @@ public class Codegen {
                 return null; // TODO ERROR
         }
         // BINOP(op, left, right)
-        NameOfTemp r = new NameOfTemp();
+        NameOfTemp r = NameOfTemp.generateTemp();
         List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
         dstTemps.add(r);
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         srcTemps.add(this.munchExp(left));
         srcTemps.add(this.munchExp(right));
-        this.emit(opInst + " `s0, `s1, `d0\n", dstTemps, srcTemps);
+        this.emit(new OperationInstruction("\t" + opInst + " `s0, `s1, `d0", dstTemps, srcTemps));
         return r;
     }
 
@@ -266,34 +272,60 @@ public class Codegen {
                     i = ((CONST) binop.right).value;
                     e = binop.left;
                 }
-                NameOfTemp r = new NameOfTemp();
+                NameOfTemp r = NameOfTemp.generateTemp();
                 List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
                 dstTemps.add(r);
                 List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
                 srcTemps.add(this.munchExp(e));
-                this.emit(new OperationInstruction("ld [`s0+" + i + "], `d0\n", dstTemps, srcTemps));
+                this.emit(new OperationInstruction("\tld [`s0+" + i + "], `d0", dstTemps, srcTemps));
                 return r;
             }
         }
         if (exp instanceof CONST) {
             // MEM(CONST(i))
             int i = ((CONST) exp).value;
-            NameOfTemp r = new NameOfTemp();
+            NameOfTemp r = NameOfTemp.generateTemp();
             List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
-            this.emit(new OperationInstruction("ld [" + i + "], `d0\n", dstTemps, null));
+            this.emit(new OperationInstruction("\tld [" + i + "], `d0", dstTemps, null));
             return r;
         }
-        NameOfTemp r = new NameOfTemp();
+        NameOfTemp r = NameOfTemp.generateTemp();
         List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
         dstTemps.add(r);
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         srcTemps.add(this.munchExp(exp));
-        this.emit(new OperationInstruction("ld [`s0], `d0\n", dstTemps, srcTemps));
+        this.emit(new OperationInstruction("\tld [`s0], `d0", dstTemps, srcTemps));
         return r;
     }
 
     NameOfTemp munchCall(Exp func, ExpList args) {
-        return null; // TODO
+        if (!(func instanceof NAME)) {
+            // TODO ERROR
+        }
+        NameOfLabel fLabel = ((NAME) func).label;
+
+        int argNum = 0;
+        while (args != null) {
+            Exp arg = args.head;
+            NameOfTemp out = new NameOfTemp("%o" + argNum);
+            this.emit(new MoveInstruction("\tmov `s0, `d0", out, this.munchExp(arg)));
+            args = args.tail;
+            argNum++;
+        }
+
+        this.emit(new OperationInstruction("\tcall " + fLabel.toString()));
+
+        NameOfTemp r = NameOfTemp.generateTemp();
+        this.emit(new MoveInstruction("\tmov `s0, `d0", r, new NameOfTemp("o0")));
+        return r;
+    }
+
+    List<Instruction> codegen(List<Stm> stms) {
+        this.insts = new ArrayList<Instruction>();
+        for (Stm s : stms) {
+            this.munchStm(s);
+        }
+        return this.insts;
     }
 
 }
