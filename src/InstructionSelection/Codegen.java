@@ -1,5 +1,6 @@
 package InstructionSelection;
 
+import ErrorManagement.UnexpectedException;
 import assem.Instruction;
 import assem.LabelInstruction;
 import assem.MoveInstruction;
@@ -16,7 +17,7 @@ public class Codegen {
         this.insts.add(inst);
     }
 
-    void munchStm(Stm s) {
+    void munchStm(Stm s) throws UnexpectedException {
         if (s instanceof SEQ) {
             SEQ seq = (SEQ) s;
             this.munchSeq(seq.left, seq.right);
@@ -38,17 +39,18 @@ public class Codegen {
         } else if (s instanceof LABEL) {
             LABEL label = (LABEL) s;
             this.munchLabel(label.label);
+        } else {
+            throw new IRParseException(s);
         }
-        // TODO ERROR
     }
 
-    void munchSeq(Stm left, Stm right) {
+    void munchSeq(Stm left, Stm right) throws UnexpectedException {
         // SEQ(left, right)
         munchStm(left);
         munchStm(right);
     }
 
-    void munchMove(MEM dst, Exp src) {
+    void munchMove(MEM dst, Exp src) throws UnexpectedException {
         if (dst.exp instanceof BINOP) {
             BINOP binop = (BINOP) dst.exp;
             if (binop.binop == BINOP.PLUS && (binop.left instanceof CONST || binop.right instanceof CONST)) {
@@ -86,18 +88,24 @@ public class Codegen {
         this.emit(new OperationInstruction("\tst `s1, [`s0]", null, srcTemps));
     }
 
-    void munchMove(TEMP dst, Exp src) {
-        // MOVE(TEMP(i), src)
+    void munchMove(TEMP dst, Exp src) throws UnexpectedException {
         NameOfTemp i = dst.temp;
+        if (src instanceof CONST) {
+            // MOVE(TEMP(i), CONST(j))
+            int j = ((CONST) src).value;
+            this.emit(new MoveInstruction("\tmov " + j + ", `d0", i, null));
+            return;
+        }
+        // MOVE(TEMP(i), src)
         this.emit(new MoveInstruction("\tmov `s0, `d0", i, this.munchExp(src)));
     }
 
-    void munchEval(Exp s) {
+    void munchEval(Exp s) throws UnexpectedException {
         // EVAL(s)
         this.munchExp(s);
     }
 
-    void munchJump(Exp exp, List<NameOfLabel> targets) {
+    void munchJump(Exp exp, List<NameOfLabel> targets) throws UnexpectedException {
         if (exp instanceof NAME) {
             // JUMP(NAME(label), targets)
             NAME name = (NAME) exp;
@@ -116,12 +124,18 @@ public class Codegen {
         this.emit(new OperationInstruction("\tjmp [`s0]", null, srcTemps, targets));
     }
 
-    void munchCjump(int rel, Exp left, Exp right, NameOfLabel ifTrue, NameOfLabel ifFalse) {
+    void munchCjump(int rel, Exp left, Exp right, NameOfLabel ifTrue, NameOfLabel ifFalse) throws UnexpectedException {
         // Do compare operation
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         srcTemps.add(this.munchExp(left));
-        srcTemps.add(this.munchExp(right));
-        this.emit(new OperationInstruction("\tcmp `s0, `s1", null, srcTemps));
+        if (right instanceof CONST) {
+            // right = CONST(i)
+            int i = ((CONST) right).value;
+            this.emit(new OperationInstruction("\tcmp `s0, " + i, null, srcTemps));
+        } else {
+            srcTemps.add(this.munchExp(right));
+            this.emit(new OperationInstruction("\tcmp `s0, `s1", null, srcTemps));
+        }
 
         // Create jump if true
         String relOp;
@@ -157,7 +171,7 @@ public class Codegen {
                 relOp = "bcc";
                 break;
             default:
-                return; // TODO ERROR
+                throw new IRParseException(new CJUMP(rel, left, right, ifTrue, ifFalse));
         }
         List<NameOfLabel> jumps = new ArrayList<NameOfLabel>();
         jumps.add(ifTrue);
@@ -170,7 +184,7 @@ public class Codegen {
         this.emit(new LabelInstruction(lab));
     }
 
-    NameOfTemp munchExp(Exp s) {
+    NameOfTemp munchExp(Exp s) throws UnexpectedException {
         if (s instanceof CONST) {
             CONST c = (CONST) s;
             return this.munchConst(c.value);
@@ -189,8 +203,9 @@ public class Codegen {
         } else if (s instanceof CALL) {
             CALL call = (CALL) s;
             return this.munchCall(call.func, call.args);
+        } else {
+            throw new IRParseException(s);
         }
-        return null; // TODO ERROR
     }
 
     NameOfTemp munchConst(int i) {
@@ -201,15 +216,15 @@ public class Codegen {
         return r;
     }
 
-    NameOfTemp munchName(NameOfLabel l) {
-        return null; // TODO ERROR
+    NameOfTemp munchName(NameOfLabel l) throws UnexpectedException {
+        throw new IRParseException(new NAME(l));
     }
 
     NameOfTemp munchTemp(NameOfTemp t) {
         return t;
     }
 
-    NameOfTemp munchBinop(int op, Exp left, Exp right) {
+    NameOfTemp munchBinop(int op, Exp left, Exp right) throws UnexpectedException {
         String opInst;
         switch (op) {
             case BINOP.PLUS:
@@ -245,7 +260,7 @@ public class Codegen {
                 opInst = "xor";
                 break;
             default:
-                return null; // TODO ERROR
+                throw new IRParseException(new BINOP(op, left, right));
         }
         // BINOP(op, left, right)
         NameOfTemp r = NameOfTemp.generateTemp();
@@ -253,12 +268,18 @@ public class Codegen {
         dstTemps.add(r);
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         srcTemps.add(this.munchExp(left));
-        srcTemps.add(this.munchExp(right));
-        this.emit(new OperationInstruction("\t" + opInst + " `s0, `s1, `d0", dstTemps, srcTemps));
+        if (right instanceof CONST) {
+            // right = CONST(i)
+            int i = ((CONST) right).value;
+            this.emit(new OperationInstruction("\t" + opInst + " `s0, " + i + ", `d0", dstTemps, srcTemps));
+        } else {
+            srcTemps.add(this.munchExp(right));
+            this.emit(new OperationInstruction("\t" + opInst + " `s0, `s1, `d0", dstTemps, srcTemps));
+        }
         return r;
     }
 
-    NameOfTemp munchMem(Exp exp) {
+    NameOfTemp munchMem(Exp exp) throws UnexpectedException {
         if (exp instanceof BINOP) {
             BINOP binop = (BINOP) exp;
             if (binop.binop == BINOP.PLUS && (binop.left instanceof CONST || binop.right instanceof CONST)) {
@@ -298,9 +319,9 @@ public class Codegen {
         return r;
     }
 
-    NameOfTemp munchCall(Exp func, ExpList args) {
+    NameOfTemp munchCall(Exp func, ExpList args) throws UnexpectedException {
         if (!(func instanceof NAME)) {
-            // TODO ERROR
+            throw new IRParseException(func);
         }
         NameOfLabel fLabel = ((NAME) func).label;
 
@@ -308,7 +329,13 @@ public class Codegen {
         while (args != null) {
             Exp arg = args.head;
             NameOfTemp out = new NameOfTemp("%o" + argNum);
-            this.emit(new MoveInstruction("\tmov `s0, `d0", out, this.munchExp(arg)));
+            if (arg instanceof CONST) {
+                // arg = CONST(i)
+                int i = ((CONST) arg).value;
+                this.emit(new MoveInstruction("\tmov " + i + ", `d0", out, null));
+            } else {
+                this.emit(new MoveInstruction("\tmov `s0, `d0", out, this.munchExp(arg)));
+            }
             args = args.tail;
             argNum++;
         }
@@ -316,11 +343,11 @@ public class Codegen {
         this.emit(new OperationInstruction("\tcall " + fLabel.toString()));
 
         NameOfTemp r = NameOfTemp.generateTemp();
-        this.emit(new MoveInstruction("\tmov `s0, `d0", r, new NameOfTemp("o0")));
+        this.emit(new MoveInstruction("\tmov `s0, `d0", r, new NameOfTemp("%o0")));
         return r;
     }
 
-    List<Instruction> codegen(List<Stm> stms) {
+    List<Instruction> codegen(List<Stm> stms) throws UnexpectedException {
         this.insts = new ArrayList<Instruction>();
         for (Stm s : stms) {
             this.munchStm(s);

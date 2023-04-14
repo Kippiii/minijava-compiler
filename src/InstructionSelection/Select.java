@@ -2,6 +2,7 @@ package InstructionSelection;
 
 import ErrorManagement.CompilerException;
 import ErrorManagement.CompilerExceptionList;
+import ErrorManagement.UnexpectedException;
 import IRTranslation.Translate;
 import SemanticChecking.Symbol.Symbol;
 import tree.Stm;
@@ -17,7 +18,7 @@ import java.util.Map;
 public class Select {
     static String filename = "Factorial.java";
 
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) throws FileNotFoundException, UnexpectedException {
         if (args.length >= 1)
             filename = args[0];
         boolean debug = args.length >= 2 && args[1].equals("debug");
@@ -35,11 +36,11 @@ public class Select {
         System.out.printf("filename=%s, errors=%d%n", filename, errors);
     }
 
-    public static void select(String filename) throws FileNotFoundException, CompilerExceptionList {
+    public static void select(String filename) throws FileNotFoundException, CompilerExceptionList, UnexpectedException {
         select(filename, false);
     }
 
-    public static void select(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList {
+    public static void select(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList, UnexpectedException {
         Map<Symbol, Stm> fragments = Translate.translate(filename);
         Map<Symbol, List<Stm>> flattenedFragments = new HashMap<Symbol, List<Stm>>();
         for (Map.Entry<Symbol, Stm> entry : fragments.entrySet()) {
