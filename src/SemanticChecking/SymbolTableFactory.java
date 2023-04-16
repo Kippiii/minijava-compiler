@@ -103,6 +103,7 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
             this.debug(mc.nameOfMainClass.s + ".main: " + mc.nameOfCommandLineArgs.s + "::String[]");
             this.curMethod.setArg(Symbol.symbol(mc.nameOfCommandLineArgs.s), new BasicType("String[]"));
         }
+        this.curMethod.setMain();
         mc.body.accept(this);
 
         // Adding main method

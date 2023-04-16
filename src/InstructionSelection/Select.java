@@ -4,6 +4,8 @@ import ErrorManagement.CompilerException;
 import ErrorManagement.CompilerExceptionList;
 import ErrorManagement.UnexpectedException;
 import IRTranslation.Translate;
+import IRTranslation.TranslateReturn;
+import SemanticChecking.Symbol.NameSpace;
 import SemanticChecking.Symbol.Symbol;
 import tree.Stm;
 import tree.TreePrint;
@@ -41,7 +43,9 @@ public class Select {
     }
 
     public static void select(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList, UnexpectedException {
-        Map<Symbol, Stm> fragments = Translate.translate(filename);
+        TranslateReturn r = Translate.translate(filename);
+        Map<Symbol, Stm> fragments = r.fragments();
+        NameSpace symbolTable = r.symbolTable();
         Map<Symbol, List<Stm>> flattenedFragments = new HashMap<Symbol, List<Stm>>();
         for (Map.Entry<Symbol, Stm> entry : fragments.entrySet()) {
             flattenedFragments.put(entry.getKey(), canon.Main.transform(entry.getValue()));
@@ -61,7 +65,7 @@ public class Select {
         Map<Symbol, List<Instruction>> assembly = new HashMap<Symbol, List<Instruction>>();
         Codegen c = new Codegen();
         for (Map.Entry<Symbol, List<Stm>> entry : flattenedFragments.entrySet()) {
-            assembly.put(entry.getKey(), c.codegen(entry.getValue()));
+            assembly.put(entry.getKey(), c.codegen(entry.getKey(), entry.getValue(), symbolTable));
         }
 
         if (debug) {

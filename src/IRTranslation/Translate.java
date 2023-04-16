@@ -34,11 +34,11 @@ public class Translate {
         System.out.printf("filename=%s, errors=%d%n", filename, errors);
     }
 
-    public static Map<Symbol, Stm> translate(String filename) throws FileNotFoundException, CompilerExceptionList {
+    public static TranslateReturn translate(String filename) throws FileNotFoundException, CompilerExceptionList {
         return translate(filename, false);
     }
 
-    public static Map<Symbol, Stm> translate(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList {
+    public static TranslateReturn translate(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList {
         CheckReturn checked = Check.check(filename);
         Program syntaxTree = checked.syntaxTree();
         NameSpace symbolTable = checked.symbolTable();
@@ -56,6 +56,6 @@ public class Translate {
             }
         }
 
-        return fragments;
+        return new TranslateReturn(fragments, symbolTable);
     }
 }

@@ -7,12 +7,14 @@ public class MethodType extends Type {
     private Type retType;
     private NameSpace args;
     private NameSpace locals;
+    private boolean isMain;
 
     public MethodType(String name) {
         this.name = name;
         this.retType = null;
         this.args = new NameSpace();
         this.locals = new NameSpace();
+        this.isMain = false;
     }
 
     public String getName() {
@@ -29,6 +31,9 @@ public class MethodType extends Type {
     }
     public int getNumArgs() {
         return this.args.size();
+    }
+    public int getNumLocals() {
+        return this.locals.size();
     }
     public Enumeration<Symbol> getArgSymbols() {
         return this.args.getEnum();
@@ -61,6 +66,13 @@ public class MethodType extends Type {
     }
     public void setLocal(Symbol s, Type t) {
         this.locals.add(s, t);
+    }
+
+    public void setMain() {
+        this.isMain = true;
+    }
+    public boolean getMain() {
+        return this.isMain;
     }
 
     @Override

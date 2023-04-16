@@ -1,6 +1,10 @@
 package InstructionSelection;
 
 import ErrorManagement.UnexpectedException;
+import SemanticChecking.Symbol.ClassType;
+import SemanticChecking.Symbol.MethodType;
+import SemanticChecking.Symbol.NameSpace;
+import SemanticChecking.Symbol.Symbol;
 import assem.Instruction;
 import assem.LabelInstruction;
 import assem.MoveInstruction;
@@ -12,6 +16,8 @@ import java.util.List;
 
 public class Codegen {
     private List<Instruction> insts;
+    private NameSpace symbolTable;
+    private int temps;
 
     private void emit(Instruction inst) {
         this.insts.add(inst);
@@ -210,6 +216,7 @@ public class Codegen {
 
     NameOfTemp munchConst(int i) {
         NameOfTemp r = NameOfTemp.generateTemp();
+        this.temps++;
         List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
         dstTemps.add(r);
         this.emit(new OperationInstruction("\tmov " + i + ", `d0", dstTemps, null));
@@ -264,6 +271,7 @@ public class Codegen {
         }
         // BINOP(op, left, right)
         NameOfTemp r = NameOfTemp.generateTemp();
+        this.temps++;
         List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
         dstTemps.add(r);
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
@@ -294,6 +302,7 @@ public class Codegen {
                     e = binop.left;
                 }
                 NameOfTemp r = NameOfTemp.generateTemp();
+                this.temps++;
                 List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
                 dstTemps.add(r);
                 List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
@@ -306,11 +315,13 @@ public class Codegen {
             // MEM(CONST(i))
             int i = ((CONST) exp).value;
             NameOfTemp r = NameOfTemp.generateTemp();
+            this.temps++;
             List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
             this.emit(new OperationInstruction("\tld [" + i + "], `d0", dstTemps, null));
             return r;
         }
         NameOfTemp r = NameOfTemp.generateTemp();
+        this.temps++;
         List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
         dstTemps.add(r);
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
@@ -343,15 +354,59 @@ public class Codegen {
         this.emit(new OperationInstruction("\tcall " + fLabel.toString()));
 
         NameOfTemp r = NameOfTemp.generateTemp();
+        this.temps++;
         this.emit(new MoveInstruction("\tmov `s0, `d0", r, new NameOfTemp("%o0")));
         return r;
     }
 
-    List<Instruction> codegen(List<Stm> stms) throws UnexpectedException {
+    private MethodType getMethodType(Symbol name) {
+        int dollarIndex = name.toString().indexOf("$");
+        Symbol className = Symbol.symbol(name.toString().substring(0, dollarIndex));
+        Symbol methodName = Symbol.symbol(name.toString().substring(dollarIndex+1));
+        return ((ClassType) this.symbolTable.getType(className)).getMethodType(methodName);
+    }
+
+    void addPrologue(Symbol name) {
+        MethodType mt = this.getMethodType(name);
+        boolean isMain = mt.getMain();
+
+        if (!isMain) {
+            this.insts.add(0, new OperationInstruction("\tsave    %sp, -4*(LOCLS+TEMPS+ARGSB+1+16)&-8, %sp"));
+            this.insts.add(0, new OperationInstruction("\t.set ARGSB, 0"));
+            this.insts.add(0, new OperationInstruction("\t.set TEMPS, " + this.temps));
+            this.insts.add(0, new OperationInstruction("\t.set LOCLS, " + mt.getNumLocals()));
+        }
+        this.insts.add(0, new LabelInstruction(new NameOfLabel(name.toString())));
+        if (isMain) {
+            this.insts.add(0, new LabelInstruction(new NameOfLabel("start")));
+            this.insts.add(0, new OperationInstruction("\t.global start"));
+        }
+    }
+
+    void addEpilogue(Symbol name) {
+        MethodType mt = this.getMethodType(name);
+        boolean isMain = mt.getMain();
+
+        this.emit(new LabelInstruction(new NameOfLabel(name.toString() + "$epilogBegin")));
+        if (isMain) {
+            this.emit(new OperationInstruction("\tclr %o0"));
+            this.emit(new OperationInstruction("\tcall exit"));
+            this.emit(new OperationInstruction("\tnop"));
+        } else {
+            this.emit(new OperationInstruction("\tret"));
+            this.emit(new OperationInstruction("\trestore"));
+        }
+    }
+
+    List<Instruction> codegen(Symbol name, List<Stm> stms, NameSpace symbolTable) throws UnexpectedException {
         this.insts = new ArrayList<Instruction>();
+        this.symbolTable = symbolTable;
+        this.temps = 0;
         for (Stm s : stms) {
             this.munchStm(s);
         }
+        this.addPrologue(name);
+        this.addEpilogue(name);
         return this.insts;
     }
 
