@@ -12,6 +12,7 @@ import tree.TreePrint;
 import assem.Instruction;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,14 +21,21 @@ import java.util.Map;
 public class Select {
     static String filename = "Factorial.java";
 
-    public static void main(String[] args) throws FileNotFoundException, UnexpectedException {
+    public static void main(String[] args) throws FileNotFoundException, UnexpectedException, IOException {
         if (args.length >= 1)
             filename = args[0];
         boolean debug = args.length >= 2 && args[1].equals("debug");
 
         int errors = 0;
         try {
-            select(filename, debug);
+            Map<Symbol, List<Instruction>> assembly = select(filename, debug);
+            AssemblyWriter aw = new AssemblyWriter(filename.substring(0, filename.lastIndexOf('.')) + ".s");
+            for (Map.Entry<Symbol, List<Instruction>> entry : assembly.entrySet()) {
+                for (Instruction inst : entry.getValue()) {
+                    aw.writeInstruction(inst);
+                }
+            }
+            aw.close();
         } catch (CompilerExceptionList exc) {
             for (CompilerException err : exc) {
                 System.err.printf("%s:%s%n", filename, err.toString());
@@ -38,11 +46,11 @@ public class Select {
         System.out.printf("filename=%s, errors=%d%n", filename, errors);
     }
 
-    public static void select(String filename) throws FileNotFoundException, CompilerExceptionList, UnexpectedException {
-        select(filename, false);
+    public static Map<Symbol, List<Instruction>> select(String filename) throws FileNotFoundException, CompilerExceptionList, UnexpectedException {
+        return select(filename, false);
     }
 
-    public static void select(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList, UnexpectedException {
+    public static Map<Symbol, List<Instruction>> select(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList, UnexpectedException {
         TranslateReturn r = Translate.translate(filename);
         Map<Symbol, Stm> fragments = r.fragments();
         NameSpace symbolTable = r.symbolTable();
@@ -68,16 +76,7 @@ public class Select {
             assembly.put(entry.getKey(), c.codegen(entry.getKey(), entry.getValue(), symbolTable));
         }
 
-        if (debug) {
-            for (Map.Entry<Symbol, List<Instruction>> entry : assembly.entrySet()) {
-                System.out.printf("!  Procedure fragment %s%n", entry.getKey().toString());
-                for (Instruction i : entry.getValue()) {
-                    System.out.println(i.format());
-                }
-                System.out.println("!  End fragment");
-                System.out.println();
-            }
-        }
+        return assembly;
     }
 
 }
