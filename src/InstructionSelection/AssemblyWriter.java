@@ -1,10 +1,12 @@
 package InstructionSelection;
 
 import assem.Instruction;
+import tree.NameOfTemp;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Map;
 
 public class AssemblyWriter {
     private PrintWriter pw;
@@ -14,7 +16,15 @@ public class AssemblyWriter {
     }
 
     public void writeInstruction(Instruction inst) {
-        this.pw.println(inst.format());
+        this.writeInstruction(inst, null);
+    }
+
+    public void writeInstruction(Instruction inst, Map<NameOfTemp, String> map) {
+        if (map == null) {
+            this.pw.println(inst.format());
+        } else {
+            this.pw.println(inst.format(map));
+        }
     }
 
     public void close() {

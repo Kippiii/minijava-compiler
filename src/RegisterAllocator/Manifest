@@ -1,2 +1,2 @@
-Main-Class: InstructionSelection.Select
+Main-Class: RegisterAllocator.Allocate
 Class-Path: ./support.jar

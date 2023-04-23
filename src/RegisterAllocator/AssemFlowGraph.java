@@ -10,9 +10,9 @@ import tree.NameOfTemp;
 import java.util.*;
 
 public class AssemFlowGraph extends AbstractAssemFlowGraph {
-    private List<Instruction> assembly;
-    private List<NameOfTemp> temps;
-    private List<Node> nodes;
+    List<Instruction> assembly;
+    List<NameOfTemp> temps;
+    List<Node> nodes;
     Map<String, Instruction> instMap;
     Map<NameOfLabel, Node> labelMap;
     List<Set<NameOfTemp>> in;
@@ -31,9 +31,10 @@ public class AssemFlowGraph extends AbstractAssemFlowGraph {
         this.assembly = assembly;
         this.temps = temps;
         this.nodes = new ArrayList<Node>();
-        this.instMap = null;
-        this.in = new ArrayList<Set<NameOfTemp>>(assembly.size());
-        this.out = new ArrayList<Set<NameOfTemp>>(assembly.size());
+        this.instMap = new HashMap<String, Instruction>();
+        this.labelMap = new HashMap<NameOfLabel, Node>();
+        this.in = new ArrayList<Set<NameOfTemp>>();
+        this.out = new ArrayList<Set<NameOfTemp>>();
         for (Instruction inst : assembly) {
             Node n = this.newNode(inst);
             nodes.add(n);
@@ -62,8 +63,8 @@ public class AssemFlowGraph extends AbstractAssemFlowGraph {
 
     public void genLiveliness() {
         for (int i = 0; i < this.assembly.size(); i++) {
-            this.in.set(i, new HashSet<NameOfTemp>());
-            this.out.set(i, new HashSet<NameOfTemp>());
+            this.in.add(new HashSet<NameOfTemp>());
+            this.out.add(new HashSet<NameOfTemp>());
         }
         int curNum = 0;
         int added = 0;
@@ -73,17 +74,21 @@ public class AssemFlowGraph extends AbstractAssemFlowGraph {
             for (int i = 0; i < this.assembly.size(); i++) {
                 Node n = this.nodes.get(i);
                 for (NameOfTemp t : this.use(n)) {
-                    this.in.get(i).add(t);
+                    if (t != null) {
+                        this.in.get(i).add(t);
+                    }
                 }
                 for (NameOfTemp t : this.out.get(i)) {
-                    if (!this.def(n).contains(t)) {
+                    if (t != null && !this.def(n).contains(t)) {
                         this.in.get(i).add(t);
                     }
                 }
 
                 for (Node s : n.succ()) {
-                    for (NameOfTemp t : this.in.get(i)) {
-                        this.out.get(i).add(t);
+                    for (NameOfTemp t : this.in.get(this.nodes.indexOf(s))) {
+                        if (t != null) {
+                            this.out.get(i).add(t);
+                        }
                     }
                 }
                 newNum += this.in.get(i).size() + this.out.get(i).size();
@@ -94,7 +99,26 @@ public class AssemFlowGraph extends AbstractAssemFlowGraph {
     }
 
     public Instruction instruction(Node n) {
-        // TODO
+        return this.instMap.get(n.toString());
+    }
+
+    @Override
+    public String toString() {
+        String s = "";
+        for (int i = 0; i < this.assembly.size(); i++) {
+            s += i + ":\n";
+            s += "\tIn:";
+            for (NameOfTemp t : this.in.get(i)) {
+                s += t.toString() + ", ";
+            }
+            s += "\n";
+            s += "\tOut:";
+            for (NameOfTemp t : this.out.get(i)) {
+                s += t.toString() + ", ";
+            }
+            s += "\n";
+        }
+        return s;
     }
 
 }

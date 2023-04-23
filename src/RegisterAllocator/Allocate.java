@@ -6,17 +6,24 @@ import ErrorManagement.UnexpectedException;
 import InstructionSelection.AssemblyWriter;
 import SemanticChecking.Symbol.Symbol;
 import assem.Instruction;
+import tree.NameOfTemp;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static InstructionSelection.Select.select;
 
 public class Allocate {
 
     static String filename = "Factorial.java";
+
+    final static List<String> colors = Arrays.asList(
+            "%l0", "%l1", "%l2", "%l3", "%l4", "%l5", "%l6", "%l7",
+            "%g0", "%g1", "%g2", "%g3", "%g4", "%g5", "%g6", "%g7",
+            "%i0", "%i1", "%i2", "%i3", "%i4", "%i5", "%i6", "%i7",
+            "%o0", "%o1", "%o2", "%o3", "%o4", "%o5", "%o6", "%o7", "%fp"
+    );
 
     public static void main(String[] args) throws UnexpectedException, IOException {
         if (args.length >= 1)
@@ -26,11 +33,11 @@ public class Allocate {
         int errors = 0;
         try {
             Map<Symbol, List<Instruction>> assembly = select(filename);
-            Map<Symbol, List<Instruction>> newAssembly = allocate(assembly, debug);
+            Map<Symbol, Map<NameOfTemp, String>> allColoring = allocate(assembly, debug);
             AssemblyWriter aw = new AssemblyWriter(filename.substring(0, filename.lastIndexOf('.')) + ".s");
             for (Map.Entry<Symbol, List<Instruction>> entry : assembly.entrySet()) {
                 for (Instruction inst : entry.getValue()) {
-                    aw.writeInstruction(inst);
+                    aw.writeInstruction(inst, allColoring.get(entry.getKey()));
                 }
             }
             aw.close();
@@ -44,13 +51,48 @@ public class Allocate {
         System.out.printf("filename=%s, errors=%d%n", filename, errors);
     }
 
-    public static Map<Symbol, List<Instruction>> allocate(Map<Symbol, List<Instruction>> assembly) {
+    public static Map<Symbol, Map<NameOfTemp, String>> allocate(Map<Symbol, List<Instruction>> assembly) {
         return allocate(assembly, false);
     }
 
-    public static Map<Symbol, List<Instruction>> allocate(Map<Symbol, List<Instruction>> assembly, boolean debug) {
-        AssemFlowGraph flowGraph = new AssemFlowGraph(assembly, ?); // TODO Get temp list?
-        return null; // TODO
+    public static Map<Symbol, Map<NameOfTemp, String>> allocate(Map<Symbol, List<Instruction>> assembly, boolean debug) {
+        Map<Symbol, Map<NameOfTemp, String>> allColorings = new HashMap<Symbol, Map<NameOfTemp, String>>();
+        for (Map.Entry<Symbol, List<Instruction>> entry : assembly.entrySet()) {
+            List<Instruction> methodAsm = entry.getValue();
+
+            Set<NameOfTemp> temps = new HashSet<NameOfTemp>();
+            for (Instruction inst : methodAsm) {
+                if (inst.use() != null) {
+                    for (NameOfTemp t : inst.use()) {
+                        if (t != null) {
+                            temps.add(t);
+                        }
+                    }
+                }
+                if (inst.def() != null) {
+                    for (NameOfTemp t : inst.def()) {
+                        if (t != null) {
+                            temps.add(t);
+                        }
+                    }
+                }
+            }
+
+            AssemFlowGraph flowGraph = new AssemFlowGraph(methodAsm, new ArrayList<NameOfTemp>(temps));
+            if (debug) {
+                System.out.println(flowGraph.toString());
+            }
+
+            AssemInterferenceGraph interferenceGraph = new AssemInterferenceGraph(flowGraph);
+            Map<NameOfTemp, String> coloring = interferenceGraph.color(colors);
+            if (debug) {
+                for (Map.Entry<NameOfTemp, String> colorEntry : coloring.entrySet()) {
+                    System.out.println(colorEntry.getKey().toString() + " -> " + colorEntry.getValue());
+                }
+            }
+            allColorings.put(entry.getKey(), coloring);
+        }
+        return allColorings;
     }
 
 }

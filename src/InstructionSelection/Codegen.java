@@ -8,14 +8,27 @@ import SemanticChecking.Symbol.Symbol;
 import assem.*;
 import tree.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class Codegen {
     private List<Instruction> insts;
     private NameSpace symbolTable;
-    private int temps;
+    Set<NameOfTemp> temps;
+
+    private void genTempSet() {
+        for (Instruction inst : insts) {
+            if (inst.use() != null) {
+                for (NameOfTemp t : inst.use()) {
+                    this.temps.add(t);
+                }
+            }
+            if (inst.def() != null) {
+                for (NameOfTemp t : inst.def()) {
+                    this.temps.add(t);
+                }
+            }
+        }
+    }
 
     private void emit(Instruction inst) {
         this.insts.add(inst);
@@ -71,9 +84,8 @@ public class Codegen {
                 }
                 NameOfTemp e1Temp = this.munchExp(e1);
                 NameOfTemp e2Temp = this.munchExp(e2);
-                List<NameOfTemp> srcTemps = Arrays.asList(e1Temp, e2Temp);
                 String comment = "[" + e1Temp.toString() + "+" + i + "] := " + e2Temp.toString();
-                this.emit(new OperationInstruction("\tst `s1, [`s0+" + i + "]", comment, null, srcTemps));
+                this.emit(new OperationInstruction("\tst `d0, [`s0+" + i + "]", comment, e2Temp, e1Temp));
                 return;
             }
         }
@@ -82,15 +94,14 @@ public class Codegen {
             int i = ((CONST) dst.exp).value;
             NameOfTemp e2Temp = this.munchExp(src);
             String comment = "[" + i + "] := " + e2Temp.toString();
-            this.emit(new OperationInstruction("\tst `s0, [" + i + "]", comment, (NameOfTemp) null, e2Temp));
+            this.emit(new OperationInstruction("\tst `s0, [" + i + "]", comment, null, e2Temp));
             return;
         }
         // MOVE(MEM(dst), src)
         NameOfTemp dstTemp = this.munchExp(dst);
         NameOfTemp srcTemp = this.munchExp(src);
-        List<NameOfTemp> srcTemps = Arrays.asList(dstTemp, srcTemp);
         String comment = "[" + dstTemp.toString() + "] := " + srcTemp.toString();
-        this.emit(new OperationInstruction("\tst `s1, [`s0]", comment, null, srcTemps));
+        this.emit(new OperationInstruction("\tst `d0, [`s0]", comment, dstTemp, srcTemp));
     }
 
     void munchMove(TEMP dst, Exp src) throws UnexpectedException {
@@ -99,7 +110,7 @@ public class Codegen {
             // MOVE(TEMP(i), CONST(j))
             int j = ((CONST) src).value;
             String comment = i.toString() + " := " + j;
-            this.emit(new MoveInstruction("\tmov " + j + ", `d0", comment, i, null));
+            this.emit(new OperationInstruction("\tset " + j + ", `d0", comment, i, null));
             return;
         }
         // MOVE(TEMP(i), src)
@@ -223,9 +234,8 @@ public class Codegen {
 
     NameOfTemp munchConst(int i) {
         NameOfTemp r = NameOfTemp.generateTemp();
-        this.temps++;
         String comment = r.toString() + " := " + i;
-        this.emit(new OperationInstruction("\tmov " + i + ", `d0", comment, r, null));
+        this.emit(new OperationInstruction("\tset " + i + ", `d0", comment, r, null));
         return r;
     }
 
@@ -277,7 +287,6 @@ public class Codegen {
         }
         // BINOP(op, left, right)
         NameOfTemp r = NameOfTemp.generateTemp();
-        this.temps++;
         List<NameOfTemp> dstTemps = new ArrayList<NameOfTemp>();
         dstTemps.add(r);
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
@@ -308,7 +317,6 @@ public class Codegen {
                     e = binop.left;
                 }
                 NameOfTemp r = NameOfTemp.generateTemp();
-                this.temps++;
                 NameOfTemp eTemp = this.munchExp(e);
                 String comment = r.toString() + " := [" + eTemp.toString() + "+" + i + "]";
                 this.emit(new OperationInstruction("\tld [`s0+" + i + "], `d0", comment, r, eTemp));
@@ -319,13 +327,11 @@ public class Codegen {
             // MEM(CONST(i))
             int i = ((CONST) exp).value;
             NameOfTemp r = NameOfTemp.generateTemp();
-            this.temps++;
             String comment = r.toString() + " := [" + i + "]";
             this.emit(new OperationInstruction("\tld [" + i + "], `d0", comment, r, null));
             return r;
         }
         NameOfTemp r = NameOfTemp.generateTemp();
-        this.temps++;
         NameOfTemp expTemp = this.munchExp(exp);
         String comment = r.toString() + " := [" + expTemp.toString() + "]";
         this.emit(new OperationInstruction("\tld [`s0], `d0", comment, r, expTemp));
@@ -346,7 +352,7 @@ public class Codegen {
                 // arg = CONST(i)
                 int i = ((CONST) arg).value;
                 String comment = out.toString() + " := " + i + "\t(Setting arg " + argNum + ")";
-                this.emit(new MoveInstruction("\tmov " + i + ", `d0", comment, out, null));
+                this.emit(new OperationInstruction("\tset " + i + ", `d0", comment, out, null));
             } else {
                 NameOfTemp argTemp = this.munchExp(arg);
                 String comment = out.toString() + " := " + argTemp.toString() + "\t(Setting arg " + argNum + ")";
@@ -374,7 +380,7 @@ public class Codegen {
         if (!isMain) {
             this.insts.add(0, new OperationInstruction("\tsave    %sp, -4*(LOCLS+TEMPS+ARGSB+1+16)&-8, %sp"));
             this.insts.add(0, new OperationInstruction("\t.set ARGSB, 0"));
-            this.insts.add(0, new OperationInstruction("\t.set TEMPS, " + this.temps));
+            this.insts.add(0, new OperationInstruction("\t.set TEMPS, " + this.temps.size()));
             this.insts.add(0, new OperationInstruction("\t.set LOCLS, " + mt.getNumLocals()));
         }
         this.insts.add(0, new LabelInstruction(new NameOfLabel(name.toString())));
@@ -405,10 +411,11 @@ public class Codegen {
     List<Instruction> codegen(Symbol name, List<Stm> stms, NameSpace symbolTable) throws UnexpectedException {
         this.insts = new ArrayList<Instruction>();
         this.symbolTable = symbolTable;
-        this.temps = 0;
+        this.temps = new HashSet<NameOfTemp>();
         for (Stm s : stms) {
             this.munchStm(s);
         }
+        this.genTempSet();
         this.addPrologue(name);
         this.addEpilogue(name);
         return this.insts;

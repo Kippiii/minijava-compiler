@@ -7,6 +7,7 @@ import IRTranslation.Translate;
 import IRTranslation.TranslateReturn;
 import SemanticChecking.Symbol.NameSpace;
 import SemanticChecking.Symbol.Symbol;
+import tree.NameOfTemp;
 import tree.Stm;
 import tree.TreePrint;
 import assem.Instruction;
@@ -20,6 +21,12 @@ import java.util.Map;
 
 public class Select {
     static String filename = "Factorial.java";
+    final static Map<NameOfTemp,String> EASY_MAP = new HashMap<NameOfTemp,String> () {
+        @java.lang.Override
+        public String get(Object t) {
+            return "%g3";
+        }
+    };
 
     public static void main(String[] args) throws FileNotFoundException, UnexpectedException, IOException {
         if (args.length >= 1)
@@ -32,7 +39,7 @@ public class Select {
             AssemblyWriter aw = new AssemblyWriter(filename.substring(0, filename.lastIndexOf('.')) + ".s");
             for (Map.Entry<Symbol, List<Instruction>> entry : assembly.entrySet()) {
                 for (Instruction inst : entry.getValue()) {
-                    aw.writeInstruction(inst);
+                    aw.writeInstruction(inst,EASY_MAP);
                 }
             }
             aw.close();

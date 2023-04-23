@@ -21,7 +21,7 @@ allocate.jar:
 	jar cfm $@ Manifest */*.class */*/*.class
 
 clean:
-	rm -f select.jar
+	rm -f allocate.jar
 	rm -f ParserGenerator/*.class
 	rm -f LexicalAnalysis/*.class
 	rm -f Parsing/*.class
