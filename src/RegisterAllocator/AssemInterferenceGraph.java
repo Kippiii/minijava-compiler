@@ -68,12 +68,12 @@ public class AssemInterferenceGraph extends InterferenceGraph {
         }
         for (int i = 0; i < this.flowGraph.nodes.size(); i++) {
             Node n = this.flowGraph.nodes.get(i);
-            for (NameOfTemp t1 : this.flowGraph.use(n)) {
+            for (NameOfTemp t1 : this.flowGraph.out.get(i)) {
                 if (t1 == null) {
                     continue;
                 }
                 for (NameOfTemp t2 : this.flowGraph.out.get(i)) {
-                    if (t2 == null) {
+                    if (t2 == null || t1 == t2) {
                         continue;
                     }
                     this.addEdge(this.getNode(t1), this.getNode(t2));

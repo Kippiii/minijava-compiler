@@ -334,10 +334,10 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
         NameOfLabel afterFalseLabel = this.genLabelWithIndex("less", "than");
 
         // Create true case
-        Stm ifTrue = new SEQ(new LABEL(trueLabel), new MOVE(new TEMP(ltTemp), new CONST(1)));
+        Stm ifTrue = new SEQ(new SEQ(new LABEL(trueLabel), new MOVE(new TEMP(ltTemp), new CONST(1))), new JUMP(afterFalseLabel));
 
         // Create false case
-        Stm ifFalse = new SEQ(new LABEL(falseLabel), new MOVE(new TEMP(ltTemp), new CONST(0)));
+        Stm ifFalse = new SEQ(new SEQ(new LABEL(falseLabel), new MOVE(new TEMP(ltTemp), new CONST(0))), new JUMP(afterFalseLabel));
 
         // Create a CJUMP
         Exp left = this.toExp(lt.e1.accept(this));

@@ -86,6 +86,7 @@ public class Allocate {
             AssemInterferenceGraph interferenceGraph = new AssemInterferenceGraph(flowGraph);
             Map<NameOfTemp, String> coloring = interferenceGraph.color(colors);
             if (debug) {
+                System.out.println(interferenceGraph.toString());
                 for (Map.Entry<NameOfTemp, String> colorEntry : coloring.entrySet()) {
                     System.out.println(colorEntry.getKey().toString() + " -> " + colorEntry.getValue());
                 }

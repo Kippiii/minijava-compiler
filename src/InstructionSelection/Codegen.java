@@ -84,8 +84,9 @@ public class Codegen {
                 }
                 NameOfTemp e1Temp = this.munchExp(e1);
                 NameOfTemp e2Temp = this.munchExp(e2);
+                this.emit(new Comment("MOVE(MEM(BINOP(PLUS, TEMP(" + e1Temp.toString() + "), CONST(" + i + "))), " + e2Temp.toString() + ")"));
                 String comment = "[" + e1Temp.toString() + "+" + i + "] := " + e2Temp.toString();
-                this.emit(new OperationInstruction("\tst `d0, [`s0+" + i + "]", comment, e2Temp, e1Temp));
+                this.emit(new OperationInstruction("\tst `s1, [`s0+" + i + "]", comment, null, Arrays.asList(e1Temp, e2Temp)));
                 return;
             }
         }
@@ -93,15 +94,17 @@ public class Codegen {
             // MOVE(MEM(CONST(i)), e2)
             int i = ((CONST) dst.exp).value;
             NameOfTemp e2Temp = this.munchExp(src);
+            this.emit(new Comment("MOVE(MEM(CONST(" + i + ")), TEMP(" + e2Temp.toString() + "))"));
             String comment = "[" + i + "] := " + e2Temp.toString();
             this.emit(new OperationInstruction("\tst `s0, [" + i + "]", comment, null, e2Temp));
             return;
         }
         // MOVE(MEM(dst), src)
-        NameOfTemp dstTemp = this.munchExp(dst);
+        NameOfTemp dstTemp = this.munchExp(dst.exp);
         NameOfTemp srcTemp = this.munchExp(src);
+        this.emit(new Comment("MOVE(MEM(TEMP(" + dstTemp.toString() + ")), TEMP(" + srcTemp.toString() + "))"));
         String comment = "[" + dstTemp.toString() + "] := " + srcTemp.toString();
-        this.emit(new OperationInstruction("\tst `d0, [`s0]", comment, dstTemp, srcTemp));
+        this.emit(new OperationInstruction("\tst `s1, [`s0]", comment, null, Arrays.asList(dstTemp, srcTemp)));
     }
 
     void munchMove(TEMP dst, Exp src) throws UnexpectedException {
@@ -109,12 +112,14 @@ public class Codegen {
         if (src instanceof CONST) {
             // MOVE(TEMP(i), CONST(j))
             int j = ((CONST) src).value;
+            this.emit(new Comment("MOVE(TEMP(" + i.toString() + "), CONST(" + j + "))"));
             String comment = i.toString() + " := " + j;
             this.emit(new OperationInstruction("\tset " + j + ", `d0", comment, i, null));
             return;
         }
         // MOVE(TEMP(i), src)
         NameOfTemp srcTemp = this.munchExp(src);
+        this.emit(new Comment("MOVE(TEMP(" + i.toString() + "), " + srcTemp.toString() + ")"));
         String comment = i.toString() + " := " + srcTemp.toString();
         this.emit(new MoveInstruction("\tmov `s0, `d0", comment, i, srcTemp));
     }
@@ -129,19 +134,22 @@ public class Codegen {
         if (exp instanceof NAME) {
             // JUMP(NAME(label), targets)
             NAME name = (NAME) exp;
-            this.emit(new OperationInstruction("\tjmp " + name.label.toString(), comment, null, null, targets));
+            this.emit(new OperationInstruction("\tba " + name.label.toString(), comment, null, null, targets));
+            this.emit(new OperationInstruction("\tnop", "(do nothing in delay slot)"));
             return;
         }
         if (exp instanceof CONST) {
             // JUMP(CONST(i), targets)
             int i = ((CONST) exp).value;
-            this.emit(new OperationInstruction("\tjmp [" + i + "]", comment, null, null, targets));
+            this.emit(new OperationInstruction("\tba [" + i + "]", comment, null, null, targets));
+            this.emit(new OperationInstruction("\tnop", "(do nothing in delay slot)"));
             return;
         }
         // JUMP(exp, targets)
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         srcTemps.add(this.munchExp(exp));
-        this.emit(new OperationInstruction("\tjmp [`s0]", comment, null, srcTemps, targets));
+        this.emit(new OperationInstruction("\tba [`s0]", comment, null, srcTemps, targets));
+        this.emit(new OperationInstruction("\tnop", "(do nothing in delay slot)"));
     }
 
     void munchCjump(int rel, Exp left, Exp right, NameOfLabel ifTrue, NameOfLabel ifFalse) throws UnexpectedException {
@@ -149,16 +157,19 @@ public class Codegen {
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         NameOfTemp leftTemp = this.munchExp(left);
         srcTemps.add(leftTemp);
+        String rightStr;
         if (right instanceof CONST) {
             // right = CONST(i)
             int i = ((CONST) right).value;
             String comment = "Test " + leftTemp.toString() + " - " + i;
             this.emit(new OperationInstruction("\tcmp `s0, " + i, null, srcTemps));
+            rightStr = "CONST(" + i + ")";
         } else {
             NameOfTemp rightTemp = this.munchExp(right);
             srcTemps.add(rightTemp);
             String comment = "Test " + leftTemp.toString() + " - " + rightTemp.toString();
             this.emit(new OperationInstruction("\tcmp `s0, `s1", null, srcTemps));
+            rightStr = "TEMP(" + rightTemp.toString() + ")";
         }
 
         // Create jump if true
@@ -200,7 +211,9 @@ public class Codegen {
         List<NameOfLabel> jumps = new ArrayList<NameOfLabel>();
         jumps.add(ifTrue);
         jumps.add(ifFalse);
+        this.emit(new Comment("CJUMP(" + rel + ", TEMP(" + leftTemp.toString() + "), " + rightStr + ", " + ifTrue.toString() + ", " + ifFalse.toString() + ")"));
         this.emit(new OperationInstruction("\t" + relOp + " " + ifTrue.toString(), null, null, jumps));
+        this.emit(new OperationInstruction("\tnop", "(do nothing in delay slot)"));
     }
 
     void munchLabel(NameOfLabel lab) {
@@ -234,6 +247,7 @@ public class Codegen {
 
     NameOfTemp munchConst(int i) {
         NameOfTemp r = NameOfTemp.generateTemp();
+        this.emit(new Comment("CONST(" + i + ")"));
         String comment = r.toString() + " := " + i;
         this.emit(new OperationInstruction("\tset " + i + ", `d0", comment, r, null));
         return r;
@@ -291,6 +305,7 @@ public class Codegen {
         dstTemps.add(r);
         List<NameOfTemp> srcTemps = new ArrayList<NameOfTemp>();
         srcTemps.add(this.munchExp(left));
+        this.emit(new Comment("BINOP(" + op + ", TEMP(" + srcTemps.get(0).toString() + ", ?))")); // TODO Better comment?
         if (right instanceof CONST) {
             // right = CONST(i)
             int i = ((CONST) right).value;
@@ -318,6 +333,7 @@ public class Codegen {
                 }
                 NameOfTemp r = NameOfTemp.generateTemp();
                 NameOfTemp eTemp = this.munchExp(e);
+                this.emit(new Comment("MEM(BINOP(PLUS, CONST(" + i + "), TEMP(" + eTemp.toString() + ")))"));
                 String comment = r.toString() + " := [" + eTemp.toString() + "+" + i + "]";
                 this.emit(new OperationInstruction("\tld [`s0+" + i + "], `d0", comment, r, eTemp));
                 return r;
@@ -327,6 +343,7 @@ public class Codegen {
             // MEM(CONST(i))
             int i = ((CONST) exp).value;
             NameOfTemp r = NameOfTemp.generateTemp();
+            this.emit(new Comment("MEM(CONST(" + i + "))"));
             String comment = r.toString() + " := [" + i + "]";
             this.emit(new OperationInstruction("\tld [" + i + "], `d0", comment, r, null));
             return r;
@@ -363,6 +380,7 @@ public class Codegen {
         }
 
         this.emit(new OperationInstruction("\tcall " + fLabel.toString()));
+        this.emit(new OperationInstruction("\tnop", "(do nothing in delay slot)"));
         return new NameOfTemp("%o0");
     }
 
@@ -401,7 +419,7 @@ public class Codegen {
         if (isMain) {
             this.emit(new OperationInstruction("\tclr %o0"));
             this.emit(new OperationInstruction("\tcall exit"));
-            this.emit(new OperationInstruction("\tnop"));
+            this.emit(new OperationInstruction("\tnop", "(do nothing in delay slot)"));
         } else {
             this.emit(new OperationInstruction("\tret"));
             this.emit(new OperationInstruction("\trestore"));

@@ -18,6 +18,8 @@ public class Utilities {
         CHECKER,
         TRANSLATOR,
         SELECTOR,
+        ALLOCATOR,
+        MAIN,
     }
     public static Phase getPhase(String phaseStr) {
         if (phaseStr.equals("lexer"))
@@ -32,7 +34,9 @@ public class Utilities {
             return Phase.TRANSLATOR;
         if (phaseStr.equals("selector"))
             return Phase.SELECTOR;
-        return Phase.SELECTOR;
+        if (phaseStr.equals("allocate"))
+            return Phase.ALLOCATOR;
+        return Phase.MAIN;
     }
     public static String getDirectory(Phase phase) {
         switch(phase) {
@@ -47,18 +51,32 @@ public class Utilities {
             case TRANSLATOR:
                 return "IRTranslation";
             case SELECTOR:
-                    return "InstructionSelection";
+                return "InstructionSelection";
+            case ALLOCATOR:
+                return "RegisterAllocator";
+            case MAIN:
+                return "Main";
         }
         return "";
     }
     public static List<String> getDirectoriesToAdd(Phase phase) {
         List<String> directories = new ArrayList<String>();
         switch(phase) {
+            case MAIN:
+                directories.add("Main/Main.java");
+            case ALLOCATOR:
+                directories.add("RegisterAllocator/Allocate.java");
+                directories.add("RegisterAllocator/AssemFlowGraph.java");
+                directories.add("RegisterAllocator/AssemInterferenceGraph.java");
             case SELECTOR:
                 directories.add("InstructionSelection/Select.java");
+                directories.add("InstructionSelection/Codegen.java");
+                directories.add("InstructionSelection/IRParseException.java");
+                directories.add("InstructionSelection/AssemblyWriter.java");
             case TRANSLATOR:
                 directories.add("IRTranslation/Translate.java");
                 directories.add("IRTranslation/IRGenerator.java");
+                directories.add("IRTranslation/TranslateReturn.java");
             case CHECKER:
                 directories.add("SemanticChecking/Symbol/BasicType.java");
                 directories.add("SemanticChecking/Symbol/ClassType.java");
@@ -92,6 +110,7 @@ public class Utilities {
                 directories.add("ParserGenerator/scanner.jj");
                 directories.add("ErrorManagement/CompilerException.java");
                 directories.add("ErrorManagement/CompilerExceptionList.java");
+                directories.add("ErrorManagement/UnexpectedException.java");
         }
         return directories;
     }
@@ -126,7 +145,11 @@ public class Utilities {
             case TRANSLATOR:
                 return "phase07.jar";
             case SELECTOR:
-                    return "phase09.jar";
+                return "phase09.jar";
+            case ALLOCATOR:
+                return "phase11.jar";
+            case MAIN:
+                return "phase12.jar";
         }
         return "invalid.jar";
     }

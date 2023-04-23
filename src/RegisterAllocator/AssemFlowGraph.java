@@ -106,7 +106,7 @@ public class AssemFlowGraph extends AbstractAssemFlowGraph {
     public String toString() {
         String s = "";
         for (int i = 0; i < this.assembly.size(); i++) {
-            s += i + ":\n";
+            s += i + "(" + this.assembly.get(i).format() + "):\n";
             s += "\tIn:";
             for (NameOfTemp t : this.in.get(i)) {
                 s += t.toString() + ", ";

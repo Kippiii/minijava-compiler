@@ -12,6 +12,10 @@ public class Jarrer {
             Utilities.copyFile(dir + "/Makefile", "Makefile");
             Utilities.copyFile(dir + "/compile", "compile");
             Utilities.copyFile(dir + "/Manifest", "Manifest");
+            if (phase == Utilities.Phase.MAIN) {
+                Utilities.copyFile(dir + "/assemble", "assemble");
+                Utilities.copyFile(dir + "/runtime.c", "runtime.c");
+            }
 
             // Getting files to add to jar
             List<String> filesToAdd = Utilities.getDirectoriesToAdd(phase);
@@ -20,6 +24,9 @@ public class Jarrer {
                 files += " " + filesToAdd.get(i);
             files += " Makefile compile";
             files += " Manifest";
+            if (phase == Utilities.Phase.MAIN) {
+                files += " assemble runtime.c";
+            }
             String jarFile = Utilities.getJarName(phase);
             Utilities.runCommand("jar cvf " + jarFile + " " + files);
         }
