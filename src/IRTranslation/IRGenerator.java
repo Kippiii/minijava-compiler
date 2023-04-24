@@ -65,7 +65,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     private Exp getArrayOffsetLValue(Exp array, Exp offset) {
-        return new BINOP(BINOP.PLUS, array, new BINOP(BINOP.MUL, offset, new CONST(4)));
+        return new BINOP(BINOP.PLUS, array, new BINOP(BINOP.MUL, new BINOP(BINOP.PLUS, offset, new CONST(1)), new CONST(4)));
     }
 
     private NameOfLabel genLabelWithIndex(String ... s) {
@@ -89,6 +89,12 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
             ct = (ClassType) this.symbolTable.getType(ct.getExtName());
         }
         return null;
+    }
+
+    private Exp toRValue(Exp lValue) {
+        if (lValue instanceof TEMP)
+            return lValue;
+        return new MEM(lValue);
     }
 
     public IRGenerator(NameSpace symbolTable) {
@@ -261,7 +267,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
 
         // Create body of loop
         Stm body = w.s.accept(this);
-        Stm bodyStm = new SEQ(new LABEL(bodyLabel), new SEQ(body, new LABEL(endLabel)));
+        Stm bodyStm = new SEQ(new LABEL(bodyLabel), new SEQ(body, new SEQ(new JUMP(loopLabel), new LABEL(endLabel))));
 
         // Put all pieces together
         Stm whileStm = new SEQ(new LABEL(loopLabel), new SEQ(cjump, bodyStm));
@@ -297,7 +303,7 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
 
     public Stm visit(ArrayAssign aa) {
         // Determine memory address of array
-        Exp array = this.toExp(aa.nameOfArray.accept(this));
+        Exp array = this.toRValue(this.toExp(aa.nameOfArray.accept(this)));
 
         // Get the l-value using offset
         Exp lvalue = this.getArrayOffsetLValue(array, this.toExp(aa.indexInArray.accept(this)));
