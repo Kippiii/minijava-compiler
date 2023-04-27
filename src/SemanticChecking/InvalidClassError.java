@@ -3,6 +3,12 @@ package SemanticChecking;
 import ErrorManagement.CompilerException;
 
 public class InvalidClassError extends CompilerException {
+    /**
+     * Represents a semantic error where a class is accessed that is not defined
+     * @param className - The name of the class that is accessed that is not defined
+     * @param lineNumber - The line where the class is accessed
+     * @param colNumber - The column where the class is accessed
+     */
     String className;
     int lineNumber, colNumber;
 

@@ -11,6 +11,14 @@ import java.util.HashMap;
 import java.util.List;
 
 public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
+    /**
+     * Visitor that is responsible for generating the symbol table
+     * @param debug - Whether to print debug output while building
+     * @param classes - The symbol table
+     * @param curClass - The type of the current class being analyzed
+     * @param curMethod - The type of the current method being analyzed
+     * @param errors - A list of semantic errors obtained when creating the symbol table
+     */
     private final boolean debug;
     NameSpace classes;
     ClassType curClass;
@@ -18,12 +26,21 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
     List<CompilerException> errors;
 
     private void debug(String s) {
+        /**
+         * Prints a string when debug is on
+         * @param s - The string to be printed
+         */
         if (this.debug) {
             System.out.println(s);
         }
     }
 
     private boolean checkMethodVar(Symbol s) {
+        /**
+         * Checks if a variable is defined in the current method
+         * @param s - The name of the variable being checked
+         * @return Whether the variable is defined in the method
+         */
         SemanticChecking.Symbol.Type arg = this.curMethod.getArgType(s);
         if (arg != null)
             return false;
@@ -31,19 +48,39 @@ public class SymbolTableFactory implements SyntaxTreeVisitor <Void> {
     }
 
     private boolean checkClassField(Symbol s) {
+        /**
+         * Checks if a variable is defined in the current class
+         * @param s - The name of the variable being checked
+         * @return Whether the variable is defined in the class
+         */
         return this.curClass.getFieldType(s) == null;
     }
 
     private boolean checkClassMethod(Symbol s) {
+        /**
+         * Checks if a method is defined in a class
+         * @param s - The name of the method being checked
+         * @return Whether the method is defined in the class
+         */
         return this.curClass.getMethodType(s) == null;
     }
 
     private boolean checkClassName(Symbol s) {
+        /**
+         * Checks if a class is defined
+         * @param s - The name of the class being checked
+         * @return Whether the class name is defined
+         */
         ClassType ct = (ClassType) this.classes.getType(s);
         return ct == null;
     }
 
     private String getTypeString(Type t) {
+        /**
+         * Converts a type to its corresponding string
+         * @param t - The type being converted
+         * @return The string that corresponds to the type
+         */
         if (t instanceof IntArrayType) {
             return "int[]";
         }

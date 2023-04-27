@@ -13,11 +13,24 @@ import java.util.ArrayList;
 import syntax.*;
 
 public class MiniJavaParser {
+    /**
+     * Manages the JavaCC parser and lexer
+     */
     public static List<ParseException> errors;
     public static void init_errors() {
+        /**
+         * Initializes the list of parser errors
+         */
         errors = new ArrayList<ParseException>();
     }
     public static ClassDecl makeRecord(Identifier name, List<Type> types, List<Identifier> fieldNames) {
+        /**
+         * Creates a ClassDecl object for a record
+         * @param name - The name of the record class
+         * @param types - The list of types for the fields of the record
+         * @param fieldNames - The list of names of the fields of the record
+         * @return The abstract syntax tree for the definition of the record as a class declaration
+         */
         // Create fields
         List<FieldDecl> fields = new ArrayList<FieldDecl>();
         for (int i = 0; i < types.size(); i++) {

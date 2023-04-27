@@ -1,0 +1,12 @@
+# Ian Orzel's Minijava Compiler Submission
+
+My compiler successfully compiles all 8 of Appel's mini Java programs. The resulting 
+programs all execute properly. Only 7/8 of them produce the proper output.The test case 
+that does not produce the proper output is `TreeVisitor.java`, which is due to the fact 
+that my compiler does not implement dynamic dispatch (always uses static dispatch).
+
+I have included two test cases in my program. The test case `MyTest1.java`, illustrates 
+that loops, recursion, arrays, printing, integer expressions, complex if statements, local 
+variables, function calls with parameters, and field access are all working as expected. 
+The test case `MyTest2.java` illustrates that inheritance (of both methods and fields) and 
+records are working as expected.

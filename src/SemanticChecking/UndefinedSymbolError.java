@@ -3,6 +3,12 @@ package SemanticChecking;
 import ErrorManagement.CompilerException;
 
 public class UndefinedSymbolError extends CompilerException {
+    /**
+     * Semantic error thrown when a symbol is used that is not defined
+     * @param symbol - The symbol being used
+     * @param lineNumber - The line number where the symbol is used
+     * @param colNumber - The column number where the symbol is used
+     */
     String symbol;
     int lineNumber, colNumber;
 

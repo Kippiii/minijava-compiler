@@ -6,6 +6,7 @@ GCC := sparc-linux-gcc
 default: compiler
 
 compiler: compile.jar runtime.o
+	chmod u+x assemble
 	chmod u+x compile
 
 compile.jar:

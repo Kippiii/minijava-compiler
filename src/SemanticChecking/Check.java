@@ -11,9 +11,17 @@ import java.io.PrintWriter;
 import java.util.*;
 
 public class Check {
+    /**
+     * The driver code for the semantic checking phase of the compiler
+     * @param filename - The source file path for the compiler
+     */
     static String filename = "Factorial.java";
 
     public static void main(String[] args) throws FileNotFoundException {
+        /**
+         * Ran by the main program when it is started from the semantic checking phase
+         * @throws FileNotFoundException
+         */
         if (args.length >= 1)
             filename = args[0];
         boolean debug = args.length >= 2 && args[1].equals("debug");
@@ -32,10 +40,25 @@ public class Check {
     }
 
     public static CheckReturn check(String filename) throws FileNotFoundException, CompilerExceptionList {
+        /**
+         * Runs semantic checking of the compiler
+         * @param filename - The path to the source file
+         * @return The abstract syntax tree and the symbol table
+         * @throws FileNotFoundException
+         * @throws CompilerExceptionList
+         */
         return check(filename, false);
     }
 
     public static CheckReturn check(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList {
+        /**
+         * Runs semantic checking of the compiler
+         * @param filename - The path to the source file
+         * @param debug - Whether to print the debug output
+         * @return The abstract syntax tree and the symbol table
+         * @throws FileNotFoundException
+         * @throws CompilerExceptionList
+         */
         Program program = BuildAbstract.buildAbstractTree(filename);
 
         // Create symbol table
@@ -91,6 +114,11 @@ public class Check {
     }
 
     static void checkInheritance(NameSpace symbolTable) throws CompilerExceptionList {
+        /**
+         * Checks if there is a cyclic inheritance in the program
+         * @param symbolTable - The symbol table of the program
+         * @throws CompilerExceptionList
+         */
         for (Symbol s : Collections.list(symbolTable.getEnum())) {
             ClassType ct = findCycle(symbolTable, s, new HashSet<Symbol>());
             if (ct != null) {
@@ -102,6 +130,12 @@ public class Check {
     }
 
     static ClassType findCycle(NameSpace symbolTable, Symbol cur, Set<Symbol> visited) {
+        /**
+         * Checks for an inheritance cycle that starts at a particular class
+         * @param symbolTable - The symbol table of the program
+         * @param cur - A symbol corresponding to the name of the class that we are starting from
+         * @param visited - The set of classes that have been visited in the dfs so far
+         */
         if (cur == null) {
             return null;
         }

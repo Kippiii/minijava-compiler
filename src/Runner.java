@@ -3,6 +3,10 @@ import java.io.IOException;
 public class Runner {
 
     public static void main(String[] args) throws IOException {
+        /**
+         * Runs the compiler in a given phase on the user input
+         * @throws IOException
+         */
         if (args.length >= 2) {
             String fileName = args[0];
             Utilities.Phase phase = Utilities.getPhase(args[1]);

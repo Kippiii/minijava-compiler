@@ -3,6 +3,12 @@ package SemanticChecking;
 import ErrorManagement.CompilerException;
 
 public class NameConflictError extends CompilerException {
+    /**
+     * Semantic error that is thrown when a name is defined that is already defined in this scope
+     * @param name - The name being defined that already exists
+     * @param lineNumber - The line number where the name is defined
+     * @param colNumber - The column number where the name is defined
+     */
     String name;
     int lineNumber, colNumber;
 

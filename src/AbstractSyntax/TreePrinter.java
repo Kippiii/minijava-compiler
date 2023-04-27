@@ -4,6 +4,11 @@ import java.io.PrintWriter;
 import syntax.*;
 
 public class TreePrinter implements SyntaxTreeVisitor <Void> {
+    /**
+     * Class used to print an abstract syntax tree
+     * @param pw - The PrintWriter to print the tree to
+     * @param tab - The number of tabs the print out
+     */
     private final PrintWriter pw;
     public TreePrinter(PrintWriter pw) {
         this.pw = pw;
@@ -14,14 +19,25 @@ public class TreePrinter implements SyntaxTreeVisitor <Void> {
 
     private int tab = 0;
     private void tab() {
+        /**
+         * Prints the tabs needed on a given line
+         */
         for (int i = 0; i < tab; i++)
             this.print("    ");
     }
 
     private void print(String s) {
+        /**
+         * Prints a given string to the PrintWriter
+         * @param s - The string to print out
+         */
         this.pw.print(s);
     }
     private void println(String s) {
+        /**
+         * Prints a given string to the PrintWriter with a trailing newline
+         * @param s - The string to print out
+         */
         this.pw.println(s);
     }
 

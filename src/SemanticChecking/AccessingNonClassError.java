@@ -3,6 +3,12 @@ package SemanticChecking;
 import ErrorManagement.CompilerException;
 
 public class AccessingNonClassError extends CompilerException {
+    /**
+     * Represents a semantic error where access is attempted of a non-object
+     * @param type - The name of the type that is being accessed
+     * @param lineNumber - The line number of the access of the object
+     * @param colNumber - The column number of the access of the object
+     */
     String type;
     int lineNumber, colNumber;
 

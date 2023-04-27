@@ -1,5 +1,5 @@
 #!/bin/csh
 set dir=`dirname $0`
 set file=`dirname $1`/`basename $1 .s`
-sparc-linux-as $file.s -o $file.o
-sparc-linux-ld -e start $file.o $dir/runtime.o -lc -o $file
+sparc-linux-as -Asparc $file.s -o $file.o
+sparc-linux-ld  -e start -dynamic-linker /lib/ld-uClibc.so.0 $file.o $dir/runtime.o -lc -o $file

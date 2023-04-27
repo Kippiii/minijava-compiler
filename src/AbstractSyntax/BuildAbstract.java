@@ -9,11 +9,20 @@ import syntax.*;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 
 public class BuildAbstract {
+    /**
+     * The driver code for the build abstract syntax tree phase of the compiler
+     * @param filename - The source file path for the compiler
+     */
     static String filename = "Factorial.java";
 
     public static void main(String[] args) throws FileNotFoundException {
+        /**
+         * Ran by when the main phase of the compiler is the build abstract syntax tree phase
+         * @throws FileNotFoundException
+         */
         if (args.length >= 1)
             filename = args[0];
         boolean debug = args.length >= 2 && args[1].equals("debug");
@@ -32,10 +41,25 @@ public class BuildAbstract {
     }
 
     public static Program buildAbstractTree(String filename) throws FileNotFoundException, CompilerExceptionList {
+        /**
+         * Builds the abstract syntax tree associated with the source program
+         * @param filename - The source file path for the compiler
+         * @return The abstract syntax tree
+         * @throws FileNotFoundException
+         * @throws CompilerExceptionList
+         */
         return buildAbstractTree(filename, false);
     }
 
     public static Program buildAbstractTree(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList {
+        /**
+         * Builds the abstract syntax tree associated with the source program
+         * @param filename - The source file path for the compiler
+         * @param debug - Whether to print debug output
+         * @return The abstract syntax tree
+         * @throws FileNotFoundException
+         * @throws CompilerExceptionList
+         */
         Parse.parse(filename);
 
         final MiniJavaParser parser = new MiniJavaParser(new FileInputStream(filename));

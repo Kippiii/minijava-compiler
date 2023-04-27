@@ -10,8 +10,14 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class Utilities {
+    /**
+     * Contains information needed for running the compiler and converting it into a jar file
+     */
 
     public enum Phase {
+        /**
+         * Represents the "phase" of the compiler being run or jarred. Useful for submitting and debugging.
+         */
         LEXER,
         PARSER,
         ABSTRACT_BUILDER,
@@ -22,6 +28,11 @@ public class Utilities {
         MAIN,
     }
     public static Phase getPhase(String phaseStr) {
+        /**
+         * Converts a string to the corresponding phase object.
+         * @param phaseStr - The user-inputted string
+         * @return The corresponding phase object
+         */
         if (phaseStr.equals("lexer"))
             return Phase.LEXER;
         if (phaseStr.equals("parser"))
@@ -39,6 +50,11 @@ public class Utilities {
         return Phase.MAIN;
     }
     public static String getDirectory(Phase phase) {
+        /**
+         * Gets the directory with the main files for a given phase
+         * @param phase - The phase of the compiler being ran or jarred
+         * @return The string of the directory where the main file for the phase is stored
+         */
         switch(phase) {
             case LEXER:
                 return "LexicalAnalysis";
@@ -60,6 +76,11 @@ public class Utilities {
         return "";
     }
     public static List<String> getDirectoriesToAdd(Phase phase) {
+        /**
+         * Determines which files to add to the jar file for a given phase
+         * @param phase - The phase of the compiler being ran or jarred
+         * @return The list of files to add into the jar file
+         */
         List<String> directories = new ArrayList<String>();
         switch(phase) {
             case MAIN:
@@ -115,11 +136,22 @@ public class Utilities {
         return directories;
     }
     public static void copyFile(String s1, String s2) throws IOException {
+        /**
+         * Copies a file from one path to another
+         * @param s1 - The path to the source file
+         * @param s2 - The path to the destination file
+         * @throws IOException
+         */
         Path fromPath = Paths.get(s1);
         Path toPath = Paths.get(s2);
         Files.copy(fromPath, toPath, StandardCopyOption.REPLACE_EXISTING);
     }
     public static void runCommand(String cmd) throws IOException {
+        /**
+         * Runs a command in the shell on the current system
+         * @param cmd - The command to be run
+         * @throws IOException
+         */
         ProcessBuilder pb = new ProcessBuilder(Arrays.asList(cmd.split("\\s+")));
         pb.redirectErrorStream(true);
         Process p = pb.start();
@@ -133,6 +165,11 @@ public class Utilities {
     }
 
     public static String getJarName(Phase phase) {
+        /**
+         * Gets the name of the jar file to create for a given phase
+         * @param phase - The phase of the compiler being ran or jarred
+         * @return The name of the jar file to create
+         */
         switch (phase) {
             case LEXER:
                 return "phase02.jar";

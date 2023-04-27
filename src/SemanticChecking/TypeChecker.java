@@ -10,12 +10,24 @@ import java.util.List;
 import java.util.Map;
 
 public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Type> {
+    /**
+     * A visitor that type checks the abstract syntax tree using a symbol table
+     * @param symbolTable - The symbol table being used for checking
+     * @param curClass - The type of the class currently being checked
+     * @param curMethod - The type of the method currently being checked
+     * @param errors - A list of semantic errors that occurred during type checking
+     */
     NameSpace symbolTable;
     ClassType curClass;
     MethodType curMethod;
     List<CompilerException> errors;
 
     SemanticChecking.Symbol.Type getTypeOfVariable(Symbol s) {
+        /**
+         * Gets the type of variable by its name
+         * @param s - The name of the variable being considered
+         * @return The type of the variable
+         */
         if (this.curMethod != null) {
             SemanticChecking.Symbol.Type t = this.curMethod.getType(s);
             if (t != null) {
@@ -39,6 +51,11 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     SemanticChecking.Symbol.Type getTypeOfMethod(Symbol s) {
+        /**
+         * Gets the type of a method by name
+         * @param s - The name of the method being considered
+         * @return The type of the method
+         */
         if (this.curClass != null) {
             ClassType ct = this.curClass;
             while (ct != null) {
@@ -58,6 +75,12 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     boolean checkTypeEquals(SemanticChecking.Symbol.Type expected, SemanticChecking.Symbol.Type received) {
+        /**
+         * Checks if two types are equivalent
+         * @param expected - The expected type
+         * @param recieved - The type obtained
+         * @return Whether the types are equivalent
+         */
         if (expected == null || received == null) {
             return false;
         }
@@ -75,6 +98,12 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     boolean isInherited(Symbol field, Symbol parentName) {
+        /**
+         * Checks if a field is defined by a superclass or its superclasses
+         * @param field - The field being checked
+         * @param parentName - The name of the parent class
+         * @return Whether the field is defined in the super class
+         */
         if (field == null || parentName == null) {
             return false;
         }
@@ -86,6 +115,11 @@ public class TypeChecker implements SyntaxTreeVisitor<SemanticChecking.Symbol.Ty
     }
 
     ClassType getClassOfObj(SemanticChecking.Symbol.Type t) {
+        /**
+         * Gets the class corresponding to an object
+         * @param t - The type of the object
+         * @return The class corresponding to the object
+         */
         return (ClassType) this.symbolTable.getType(Symbol.symbol(t.toString()));
     }
 

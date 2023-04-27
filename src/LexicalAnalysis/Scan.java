@@ -9,9 +9,18 @@ import ErrorManagement.CompilerExceptionList;
 import ParserGenerator.*;
 
 public class Scan {
+    /**
+     * The driver code for the lexical analysis phase of the compiler
+     * @param filename - The source file path for the compiler
+     */
     static String filename = "Factorial.java";
 
     public static void main(String[] args) throws FileNotFoundException, IOException {
+        /**
+         * Ran by when the main phase of the compiler is the lexical analysis phase
+         * @throws FileNotFoundException
+         * @throws IOException
+         */
         if (args.length < 1)
             filename = "Factorial.java";
         else
@@ -34,10 +43,23 @@ public class Scan {
     }
 
     public static void scan(String file) throws CompilerExceptionList, FileNotFoundException {
+        /**
+         * Performs lexical analysis on the source file
+         * @param file - The source file being analyzed
+         * @throws CompilerExceptionList
+         * @throws FileNotFoundException
+         */
         scan(file, false);
     }
 
     public static void scan(String file, boolean debug) throws CompilerExceptionList, FileNotFoundException {
+        /**
+         * Performs lexical analysis on the source file
+         * @param file - The source file being analyzed
+         * @param debug - Whether to print debug output
+         * @throws CompilerExceptionList
+         * @throws FileNotFoundException
+         */
         final MiniJavaParser lexer = new MiniJavaParser(new FileInputStream(file));
 
         if (debug)

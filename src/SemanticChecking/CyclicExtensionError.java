@@ -3,6 +3,12 @@ package SemanticChecking;
 import ErrorManagement.CompilerException;
 
 public class CyclicExtensionError extends CompilerException {
+    /**
+     * Represents an error where a class is a subclass of itself
+     * @param className - The name of the class that is a subclass of itself
+     * @param lineNumber - The line number where the class was declared
+     * @param colNumber - The column number where the class was declared
+     */
     String className;
     int lineNumber, colNumber;
 
