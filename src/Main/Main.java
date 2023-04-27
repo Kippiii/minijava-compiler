@@ -15,8 +15,16 @@ import java.util.List;
 import java.util.Map;
 
 public class Main {
+    /**
+     * The main driving code of the compiler
+     */
 
     public static void main(String[] args) throws UnexpectedException, IOException {
+        /**
+         * Gets ran when the full compiler is ran
+         * @throws UnexpectedException
+         * @throws IOException
+         */
         if (args.length < 1) {
             System.err.println("File name not provided");
             return;

@@ -10,6 +10,16 @@ import tree.NameOfTemp;
 import java.util.*;
 
 public class AssemFlowGraph extends AbstractAssemFlowGraph {
+    /**
+     * Represents a graph where nodes represent assembly instructions and edges represent possible instruction orderings
+     * @param assembly - The list of instructions in the assembly
+     * @param temps - The list of temporaries used in the assembly
+     * @param nodes - The list of nodes in the graph
+     * @param instMap - A map from node strings to their corresponding instructions
+     * @param labelMap - A mapping from labels to their corresponding nodes
+     * @param in - The list of live-in temporaries at each node
+     * @param out - The list of live-out temporaries at each node
+     */
     List<Instruction> assembly;
     List<NameOfTemp> temps;
     List<Node> nodes;
@@ -19,6 +29,11 @@ public class AssemFlowGraph extends AbstractAssemFlowGraph {
     List<Set<NameOfTemp>> out;
 
     private Node newNode(Instruction inst) {
+        /**
+         * Creates a new node in the graph to represent a given instruction
+         * @param inst - The instruction in question
+         * @return The new node corresponding to that instruction
+         */
         Node n = this.newNode();
         instMap.put(n.toString(), inst);
         if (inst instanceof LabelInstruction) {
@@ -44,6 +59,9 @@ public class AssemFlowGraph extends AbstractAssemFlowGraph {
     }
 
     public void addEdges() {
+        /**
+         * Iterates over the assembly code of this graph to create edges between instructions that could follow the other
+         */
         for (int i = 0; i < this.assembly.size(); i++) {
             Instruction fromInst = this.assembly.get(i);
             Node fromNode = this.nodes.get(i);
@@ -62,6 +80,9 @@ public class AssemFlowGraph extends AbstractAssemFlowGraph {
     }
 
     public void genLiveliness() {
+        /**
+         * Populates the live-in and live-out temporaries for each instruction
+         */
         for (int i = 0; i < this.assembly.size(); i++) {
             this.in.add(new HashSet<NameOfTemp>());
             this.out.add(new HashSet<NameOfTemp>());
@@ -99,11 +120,20 @@ public class AssemFlowGraph extends AbstractAssemFlowGraph {
     }
 
     public Instruction instruction(Node n) {
+        /**
+         * Returns the instruction that corresponds to each node
+         * @param n - The node in question
+         * @return The instruction corresponding to the node
+         */
         return this.instMap.get(n.toString());
     }
 
     @Override
     public String toString() {
+        /**
+         * Creats a string version of liveliness info of the graph for use with debugging
+         * @return The string version of the liveliness info
+         */
         String s = "";
         for (int i = 0; i < this.assembly.size(); i++) {
             s += i + "(" + this.assembly.get(i).format() + "):\n";

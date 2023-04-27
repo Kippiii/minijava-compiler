@@ -11,11 +11,20 @@ import tree.*;
 import java.util.*;
 
 public class Codegen {
+    /**
+     * Converts a list of IR statements to SPARC assembly code
+     * @param insts - The list of assembly instructions generated
+     * @param symbolTable - The symbol table of the program
+     * @param temps - The set of all temporaries used in the IR code
+     */
     private List<Instruction> insts;
     private NameSpace symbolTable;
     Set<NameOfTemp> temps;
 
     private void genTempSet() {
+        /**
+         * Goes through the assembly code and adds every temporary to the set of temps
+         */
         for (Instruction inst : insts) {
             if (inst.use() != null) {
                 for (NameOfTemp t : inst.use()) {
@@ -31,6 +40,10 @@ public class Codegen {
     }
 
     private void emit(Instruction inst) {
+        /**
+         * Adds an instruction to the list of instructions
+         * @param inst - The instruction to be added
+         */
         this.insts.add(inst);
     }
 
@@ -385,6 +398,11 @@ public class Codegen {
     }
 
     private MethodType getMethodType(Symbol name) {
+        /**
+         * Gets the method type given the label of that method
+         * @param name - Label of the method given in form className$methodName
+         * @return The method type of that method
+         */
         int dollarIndex = name.toString().indexOf("$");
         Symbol className = Symbol.symbol(name.toString().substring(0, dollarIndex));
         Symbol methodName = Symbol.symbol(name.toString().substring(dollarIndex+1));
@@ -392,6 +410,10 @@ public class Codegen {
     }
 
     void addPrologue(Symbol name) {
+        /**
+         * Adds the prologue to a method
+         * @param name - The name of the method
+         */
         MethodType mt = this.getMethodType(name);
         boolean isMain = mt.getMain();
 
@@ -412,6 +434,10 @@ public class Codegen {
     }
 
     void addEpilogue(Symbol name) {
+        /**
+         * Adds the epilogue to a method
+         * @param name - The name of the method
+         */
         MethodType mt = this.getMethodType(name);
         boolean isMain = mt.getMain();
 
@@ -427,6 +453,13 @@ public class Codegen {
     }
 
     List<Instruction> codegen(Symbol name, List<Stm> stms, NameSpace symbolTable) throws UnexpectedException {
+        /**
+         * Generates the list of assembly intruction from the IR code
+         * @param name - The name of method in the form className$methodName
+         * @param stms - The list of IR instructions
+         * @param symbolTable - The symbol table derived from the source program
+         * @return The list of assembly instructions
+         */
         this.insts = new ArrayList<Instruction>();
         this.symbolTable = symbolTable;
         this.temps = new HashSet<NameOfTemp>();

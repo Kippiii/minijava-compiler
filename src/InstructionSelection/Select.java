@@ -20,6 +20,11 @@ import java.util.List;
 import java.util.Map;
 
 public class Select {
+    /**
+     * Main driving code for the instruction selection phase of the compiler
+     * @param filename - The path to the source file
+     * @param EASY_MAP - A simple temp map that maps all temps to %g3
+     */
     static String filename = "Factorial.java";
     final static Map<NameOfTemp,String> EASY_MAP = new HashMap<NameOfTemp,String> () {
         @java.lang.Override
@@ -29,6 +34,12 @@ public class Select {
     };
 
     public static void main(String[] args) throws FileNotFoundException, UnexpectedException, IOException {
+        /**
+         * Code that is ran when the compiler is run starting at the instruction selection phase
+         * @throws FileNotFoundException
+         * @throws UnexpectedException
+         * @throws IOException
+         */
         if (args.length >= 1)
             filename = args[0];
         boolean debug = args.length >= 2 && args[1].equals("debug");
@@ -54,10 +65,27 @@ public class Select {
     }
 
     public static Map<Symbol, List<Instruction>> select(String filename) throws FileNotFoundException, CompilerExceptionList, UnexpectedException {
+        /**
+         * Generates the instructions (without register allocations) for a given source file
+         * @param filename - The source file
+         * @return A mapping from method names to lists of assembly instructions
+         * @throws FileNotFoundException
+         * @throws CompilerExceptionList
+         * @throws UnexpectedException
+         */
         return select(filename, false);
     }
 
     public static Map<Symbol, List<Instruction>> select(String filename, boolean debug) throws FileNotFoundException, CompilerExceptionList, UnexpectedException {
+        /**
+         * Generates the instructions (without register allocations) for a given source file
+         * @param filename - The source file
+         * @param debug - Whether to print debug output
+         * @return A mapping from method names to lists of assembly instructions
+         * @throws FileNotFoundException
+         * @throws CompilerExceptionList
+         * @throws UnexpectedException
+         */
         TranslateReturn r = Translate.translate(filename);
         Map<Symbol, Stm> fragments = r.fragments();
         NameSpace symbolTable = r.symbolTable();

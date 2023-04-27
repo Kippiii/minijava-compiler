@@ -14,6 +14,16 @@ import java.util.List;
 import java.util.Map;
 
 public class IRGenerator implements SyntaxTreeVisitor<Stm> {
+    /**
+     * Visitor that converts an abstract syntax tree to IR code
+     * @param printFunction - The name of the helper function used for printing
+     * @param allocFunction - The name of the helper function used for allocating memory
+     * @param curClassName - The name of the current class being explored
+     * @param curMethodName - The name of the current method being explored
+     * @param curId - The current id to be appended to temp names
+     * @param symbolTable - The symbol table corresponding to the source program
+     * @param fragments - A mapping of method names to IR code (the output)
+     */
     static final String printFunction = "print_int";
     static final String allocFunction = "alloc";
     Symbol curClassName;
@@ -23,6 +33,11 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     Map<Symbol, Stm> fragments;
 
     private Exp genVarLValue(Symbol variable) {
+        /**
+         * Generates the IR code to get the l-value of a variable
+         * @param variable - The name of the variable
+         * @return The IR code that gets the l-value of the variable
+         */
         ClassType ct = (ClassType) this.symbolTable.getType(this.curClassName);
         MethodType mt = ct.getMethodType(this.curMethodName);
 
@@ -56,28 +71,60 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     private Exp toExp(Stm s) {
+        /**
+         * Converts a statement to an expression
+         * @param s - The statement
+         * @return The related expression
+         */
         assert(s instanceof EVAL);
         return ((EVAL) s).exp;
     }
 
     private Stm toStm(Exp e) {
+        /**
+         * Converts an expression to a statement
+         * @param e - The expression
+         * @return The related statement
+         */
         return new EVAL(e);
     }
 
     private Exp getArrayOffsetLValue(Exp array, Exp offset) {
+        /**
+         * Creates IR code that gets the l-value of an array offset (for accessing)
+         * @param array - Expression for the address of the array
+         * @param offset - Expression for the offset of the array to get
+         * @return Expression for the address of that offset of the array
+         */
         return new BINOP(BINOP.PLUS, array, new BINOP(BINOP.MUL, new BINOP(BINOP.PLUS, offset, new CONST(1)), new CONST(4)));
     }
 
     private NameOfLabel genLabelWithIndex(String ... s) {
+        /**
+         * Creates a label with an index at the end
+         * @param s - List of strings to concatenate
+         * @return The generated label
+         */
         s[s.length - 1] = s[s.length - 1] + Integer.toString(this.curId++);
         return new NameOfLabel(s);
     }
 
     private Exp genAllocation(Exp size) {
+        /**
+         * Generates IR code that allocates memory of the given size and returns its address
+         * @param size - An expression representing the size to allocate
+         * @return An expression that allocates the memory and returns the address
+         */
         return new CALL(new NameOfLabel(allocFunction), size);
     }
 
     private String getNameForMethod(String className, String methodName) {
+        /**
+         * Gets the label to jump to for a particular method call
+         * @param className - The name of the class whose instance is getting called from
+         * @param methodName - The name of the method being called
+         * @return The string version of the label to jump to
+         */
         ClassType ct = (ClassType) this.symbolTable.getType(Symbol.symbol(className));
         while (true) {
             if (ct.getMethodType(Symbol.symbol(methodName)) != null) {
@@ -92,6 +139,11 @@ public class IRGenerator implements SyntaxTreeVisitor<Stm> {
     }
 
     private Exp toRValue(Exp lValue) {
+        /**
+         * Converts an l-value to an r-value
+         * @param lValue - Expression representing the l-value of a variable
+         * @return The r-value related to the l-value
+         */
         if (lValue instanceof TEMP)
             return lValue;
         return new MEM(lValue);

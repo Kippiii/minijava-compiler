@@ -15,6 +15,11 @@ import java.util.*;
 import static InstructionSelection.Select.select;
 
 public class Allocate {
+    /**
+     * Main driver code for the register allocation phase of the compiler
+     * @param filename - The path to the source file
+     * @param colors - A list of all registers to color to
+     */
 
     static String filename = "Factorial.java";
 
@@ -23,9 +28,14 @@ public class Allocate {
             "%g0", "%g1", "%g2", "%g3", "%g4", "%g5", "%g6", "%g7",
             "%i0", "%i1", "%i2", "%i3", "%i4", "%i5", "%i6", "%i7",
             "%o0", "%o1", "%o2", "%o3", "%o4", "%o5", "%o6", "%o7", "%fp"
-    );
+    );  // TODO some of these should not be colored to
 
     public static void main(String[] args) throws UnexpectedException, IOException {
+        /**
+         * Ran when the compiler is ran from the register allocation phase
+         * @throws UnexpectedException
+         * @throws IOException
+         */
         if (args.length >= 1)
             filename = args[0];
         boolean debug = args.length >= 2 && args[1].equals("debug");
@@ -52,10 +62,21 @@ public class Allocate {
     }
 
     public static Map<Symbol, Map<NameOfTemp, String>> allocate(Map<Symbol, List<Instruction>> assembly) {
+        /**
+         * Creates a mapping from temporaries to registers given some assembly code
+         * @param assembly - Map from method names to their assembly code
+         * @return A map from method names to maps that map temporaries to registers
+         */
         return allocate(assembly, false);
     }
 
     public static Map<Symbol, Map<NameOfTemp, String>> allocate(Map<Symbol, List<Instruction>> assembly, boolean debug) {
+        /**
+         * Creates a mapping from temporaries to registers given some assembly code
+         * @param assembly - Map from method names to their assembly code
+         * @param debug - Whether to print debug output
+         * @return A map from method names to maps that map temporaries to registers
+         */
         Map<Symbol, Map<NameOfTemp, String>> allColorings = new HashMap<Symbol, Map<NameOfTemp, String>>();
         for (Map.Entry<Symbol, List<Instruction>> entry : assembly.entrySet()) {
             List<Instruction> methodAsm = entry.getValue();
